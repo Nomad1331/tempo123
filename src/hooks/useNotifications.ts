@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export interface Notification {
   id: string;
@@ -22,6 +23,10 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [counts, setCounts] = useState<NotificationCounts>({ guilds: 0, friends: 0, total: 0 });
   const [loading, setLoading] = useState(true);
+  
+  // Track known notification IDs to detect new ones
+  const knownNotificationIds = useRef<Set<string>>(new Set());
+  const isInitialLoad = useRef(true);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) {
@@ -56,14 +61,23 @@ export const useNotifications = () => {
             .eq('user_id', invite.inviter_id)
             .maybeSingle();
 
+          const notifId = `guild_invite_${invite.id}`;
+          
           allNotifications.push({
-            id: `guild_invite_${invite.id}`,
+            id: notifId,
             type: 'guild_invite',
             title: 'Guild Invite',
             description: `${inviter?.hunter_name || 'Someone'} invited you to join ${guild?.name || 'a guild'}`,
-            data: { inviteId: invite.id, guildId: invite.guild_id, guildName: guild?.name },
+            data: { inviteId: invite.id, guildId: invite.guild_id, guildName: guild?.name, inviterName: inviter?.hunter_name },
             created_at: invite.created_at,
           });
+          
+          // Show toast for new guild invites
+          if (!isInitialLoad.current && !knownNotificationIds.current.has(notifId)) {
+            toast.info(`🏰 Guild Invite!`, {
+              description: `${inviter?.hunter_name || 'Someone'} invited you to join ${guild?.name || 'a guild'}`,
+            });
+          }
         }
       }
 
@@ -82,14 +96,23 @@ export const useNotifications = () => {
             .eq('user_id', request.requester_id)
             .maybeSingle();
 
+          const notifId = `friend_request_${request.id}`;
+          
           allNotifications.push({
-            id: `friend_request_${request.id}`,
+            id: notifId,
             type: 'friend_request',
             title: 'Friend Request',
             description: `${requester?.hunter_name || 'Someone'} wants to be your friend`,
-            data: { requestId: request.id, requesterId: request.requester_id },
+            data: { requestId: request.id, requesterId: request.requester_id, requesterName: requester?.hunter_name },
             created_at: request.created_at,
           });
+          
+          // Show toast for new friend requests
+          if (!isInitialLoad.current && !knownNotificationIds.current.has(notifId)) {
+            toast.info(`👤 Friend Request!`, {
+              description: `${requester?.hunter_name || 'Someone'} wants to be your friend`,
+            });
+          }
         }
       }
 
@@ -108,16 +131,29 @@ export const useNotifications = () => {
             .eq('user_id', duel.challenger_id)
             .maybeSingle();
 
+          const notifId = `duel_challenge_${duel.id}`;
+          
           allNotifications.push({
-            id: `duel_challenge_${duel.id}`,
+            id: notifId,
             type: 'duel_challenge',
             title: 'Duel Challenge',
             description: `${challenger?.hunter_name || 'Someone'} challenged you to a streak duel`,
-            data: { duelId: duel.id, challengerId: duel.challenger_id },
+            data: { duelId: duel.id, challengerId: duel.challenger_id, challengerName: challenger?.hunter_name },
             created_at: duel.created_at,
           });
+          
+          // Show toast for new duel challenges
+          if (!isInitialLoad.current && !knownNotificationIds.current.has(notifId)) {
+            toast.info(`⚔️ Duel Challenge!`, {
+              description: `${challenger?.hunter_name || 'Someone'} challenged you to a streak duel`,
+            });
+          }
         }
       }
+
+      // Update known IDs
+      knownNotificationIds.current = new Set(allNotifications.map(n => n.id));
+      isInitialLoad.current = false;
 
       // Sort by created_at descending
       allNotifications.sort((a, b) => 
@@ -148,55 +184,19 @@ export const useNotifications = () => {
     // Set up realtime subscriptions
     if (!user) return;
 
-    // Subscribe to guild_invites changes
     const guildInvitesChannel = supabase
       .channel('guild-invites-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'guild_invites',
-          filter: `invitee_id=eq.${user.id}`,
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guild_invites', filter: `invitee_id=eq.${user.id}` }, () => fetchNotifications())
       .subscribe();
 
-    // Subscribe to friendships changes
     const friendshipsChannel = supabase
       .channel('friendships-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'friendships',
-          filter: `addressee_id=eq.${user.id}`,
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `addressee_id=eq.${user.id}` }, () => fetchNotifications())
       .subscribe();
 
-    // Subscribe to streak_duels changes
     const duelsChannel = supabase
       .channel('duels-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'streak_duels',
-          filter: `challenged_id=eq.${user.id}`,
-        },
-        () => {
-          fetchNotifications();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'streak_duels', filter: `challenged_id=eq.${user.id}` }, () => fetchNotifications())
       .subscribe();
 
     return () => {

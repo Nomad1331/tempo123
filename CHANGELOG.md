@@ -2,6 +2,39 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.9.0] - 2025-12-15
+
+### Added
+- **Real-time Toast Notifications**: Instant popup toasts when receiving new notifications
+  - 🏰 Guild invite toasts with "View" action button
+  - 👤 Friend request toasts with navigation to Friends page
+  - ⚔️ Duel challenge toasts with quick access to pending challenges
+  - Only triggers for NEW notifications (not on initial load)
+
+- **Solo Leveling Guild UI Redesign**: Complete visual overhaul of the Guilds page
+  - **Epic Header**: Dramatic "GUILD HALL" title with animated castle icons, glowing effects, and decorative elements
+  - **Guild Gate Cards**: Power tier-based styling with color-coded glowing borders:
+    - Legendary (10k+ power): Gold glow
+    - Epic (5k+ power): Purple glow
+    - Rare (2k+ power): Cyan glow
+    - Uncommon (500+ power): Green glow
+    - Common: Slate borders
+  - **Guild Banner**: Full-width guild display with animated emblem, power stats, role badges
+  - **Party Members Panel**: Enhanced member list with role icons, power display, and hover actions
+  - **System Messages Chat**: Violet-themed chat panel styled like Solo Leveling system messages
+  - **Rankings Tab**: Podium styling for top 3 guilds with trophy icons and tier coloring
+  - **Create Guild Modal**: Decorative corner borders and gradient styling
+  - **Micro-animations**: Framer-motion entrance animations, floating effects, pulsing glows
+
+### Technical
+- Updated `src/hooks/useNotifications.ts` - Added toast triggers for real-time notifications with navigation actions
+- Completely rewrote `src/pages/Guilds.tsx` - Solo Leveling themed UI with new components:
+  - `GuildGateCard` - Power tier styled guild cards
+  - `GuildBanner` - Full guild info display
+  - `MemberCard` - Enhanced member list items
+  - `RankingEntry` - Podium-style ranking rows
+- Added new Lucide icons: Sparkles for decorative elements
+
 ## [3.8.0] - 2025-12-14
 
 ### Added
