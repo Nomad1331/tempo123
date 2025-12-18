@@ -2,6 +2,113 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.9.3] - 2025-12-18
+
+### Added
+- **Hunter Rankings Epic Redesign**: Complete Solo Leveling themed overhaul of the Leaderboard page
+
+  **Dramatic Header**:
+  - "HUNTER RANKINGS" title with Cinzel font (text-5xl desktop, text-3xl mobile)
+  - Cyan gradient text (cyan-400 to cyan-600) with animated glow effect
+  - FLOATING SHIELD icons on each side with 3-second up/down animation
+  - CROSSED SWORDS decoration underneath with subtle swing animation
+  - Decorative horizontal lines with gradient fade at ends
+  - Animated subtitle with fade-in effect
+  - Background gradient from slate-900 via slate-950 to slate-900
+  - Animated beam effects (diagonal moving lines)
+
+  **Your Position Card**:
+  - Full-width banner with gradient from cyan-950/30 to slate-900
+  - 2px border-cyan-500/50 with animated glow effect
+  - Large circular rank badge (text-4xl font)
+  - Crown icon 👑 for #1 position with rotation animation
+  - PULSING GLOW animation for top 3 positions
+  - "of X Hunters" count display
+  - Special gold/silver/bronze tints for top 3
+
+  **Enhanced Tab Navigation**:
+  - Icons before each tab: Globe (Global), Calendar (Weekly), Target (By Rank)
+  - Active tab: glowing border (3px) with box-shadow glow effect
+  - Hover glow on inactive tabs
+  - Smooth transitions and animations
+  - Weekly tab shows "Resets in X days" countdown badge
+
+  **Sort Dropdown Enhancement**:
+  - TrendingUp icon with cyan glow
+  - Backdrop blur on dropdown menu
+  - Icons for each option: Hash (Level), Zap (XP), Flame (Power)
+  - Cyan-tinted hover effects
+
+  **Top 3 Podium Display**:
+  - #1 FIRST PLACE: h-72 tallest card, gold gradient background, 3px gold border
+    - 40px gold glow box-shadow, 👑 crown icon with rotation animation
+    - h-24 avatar with gold ring, text-2xl Cinzel name, counting power animation
+  - #2 SECOND PLACE: h-60 card, silver gradient, 3px slate-400 border
+    - 30px silver glow, 🥈 medal icon, h-20 avatar
+  - #3 THIRD PLACE: h-56 card, bronze gradient, 3px amber-700 border
+    - 25px bronze glow, 🥉 medal icon, h-20 avatar
+  - Layout: #2 left, #1 center (elevated), #3 right on desktop
+  - Stacked vertically on mobile (#1, #2, #3 order)
+  - Hover: scale 1.05, increased glow, "View Profile →" text
+
+  **Hunter Row Entries (4+)**:
+  - "⚔️ All-Time Rankings" section title in Cinzel font
+  - Rank badge with tier-colored text
+  - Avatar with rank-colored border (2px)
+  - Power display with ⚡ icon in cyan-400
+  - Border-left 4px accent matching hunter's rank tier
+  - Hover: translateX 4px, glow effect for S/A/B rank hunters
+  - View profile arrow appears on hover
+
+  **Rank-Based Color System**:
+  - S-Rank: Gold (yellow-400/500) with animated shimmer
+  - A-Rank: Purple (purple-400/500) with subtle pulse
+  - B-Rank: Cyan (cyan-400/500) with electric spark on hover
+  - C-Rank: Emerald (emerald-400/500)
+  - D-Rank: Blue (blue-400/500)
+  - E-Rank: Slate (slate-400/500)
+
+  **Weekly Rankings Features**:
+  - Reset countdown banner: "⏰ Weekly Rankings Reset In: X days Y hours"
+  - Purple-themed styling (purple-950/30 background)
+  - Weekly XP display with TrendingUp icon
+  - Real-time countdown updates
+
+  **By Rank Tab**:
+  - Rank selector with tier-colored options
+  - Filter display showing total hunters in selected rank
+  - Rankings scoped to selected rank only
+
+  **Micro-Animations**:
+  - Page load: Header fade-in + slide-down, podium cards bounce up (staggered)
+  - Hunter rows: Fade-in + slide-right with 0.05s stagger delay
+  - Hover: Scale 1.02-1.05, increased glow intensity, lift shadow
+  - Click: Scale 0.95 feedback with spring animation
+  - Number counting: Power stats count from 0 over 1 second
+  - Floating particles: 15 tiny cyan/purple dots with low opacity
+
+  **Atmospheric Background**:
+  - Fixed floating particles (cyan/purple) with subtle movement
+  - Radial gradient overlay from center to edges
+  - Animated beam effects moving diagonally
+
+  **Empty States**:
+  - Trophy icon with "No hunters have awakened yet..."
+  - "Start Your Journey" CTA button for non-logged users
+  - Unranked state shows "Complete quests to rank"
+
+  **Full Responsiveness**:
+  - Mobile: text-3xl header, h-8 shields, stacked podium
+  - Tablet: 2-column layouts where appropriate
+  - Desktop: Full 3-column podium with elevation effect
+
+### Technical
+- Created PodiumCard component with position-based styling
+- Created HunterRow component for entries 4+
+- Added useCountUp hook for animated number counting
+- Integrated Framer Motion for all entrance and hover animations
+- Added atmospheric background with floating particles and beam effects
+
 ## [3.9.2] - 2025-12-18
 
 ### Added
