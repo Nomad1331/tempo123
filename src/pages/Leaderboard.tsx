@@ -233,14 +233,16 @@ const PodiumCard = ({
         </motion.div>
         
         {/* Avatar */}
-        <div className={`relative ${config.avatarSize} rounded-full ${config.avatarBorder} overflow-hidden`}>
+        <div className={`relative ${config.avatarSize} rounded-full ${config.avatarBorder} overflow-hidden flex items-center justify-center bg-slate-800`}>
           {position === 1 && (
-            <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" />
+            <div className="absolute inset-0 bg-yellow-500/20 animate-pulse z-0" />
           )}
           <HunterAvatar 
             avatar={entry.avatar} 
             hunterName={entry.hunterName} 
-            size="lg"
+            size={position === 1 ? 'xl' : 'lg'}
+            showBorder={false}
+            className="w-full h-full"
           />
         </div>
         
@@ -319,11 +321,13 @@ const HunterRow = ({
       </div>
       
       {/* Avatar */}
-      <div className={`relative h-10 w-10 md:h-12 md:w-12 rounded-full border-2 ${rankColors.border} overflow-hidden flex-shrink-0`}>
+      <div className={`relative h-10 w-10 md:h-12 md:w-12 rounded-full border-2 ${rankColors.border} overflow-hidden flex-shrink-0 bg-slate-800 flex items-center justify-center`}>
         <HunterAvatar 
           avatar={entry.avatar} 
           hunterName={entry.hunterName} 
           size="md"
+          showBorder={false}
+          className="w-full h-full"
         />
       </div>
       

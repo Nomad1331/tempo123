@@ -37,19 +37,28 @@ export const HunterAvatar = ({
   className,
   showBorder = true 
 }: HunterAvatarProps) => {
-  const isCustomImage = avatar?.startsWith('data:');
+  // Check if avatar is a custom uploaded image (base64 data URL or http URL)
+  const isCustomImage = avatar?.startsWith('data:') || avatar?.startsWith('http');
+  // Check if avatar is a class emoji identifier
+  const isClassEmoji = avatar && CLASS_EMOJIS[avatar.toLowerCase()];
   
   return (
     <Avatar className={cn(
       sizeClasses[size],
       showBorder && 'border-2 border-primary/30',
+      'flex-shrink-0',
       className
     )}>
       {isCustomImage ? (
-        <AvatarImage src={avatar} alt={hunterName} className="object-cover" />
+        <AvatarImage src={avatar} alt={hunterName} className="object-cover w-full h-full" />
       ) : null}
-      <AvatarFallback className="bg-primary/20 text-primary font-bold">
-        {isCustomImage ? hunterName.charAt(0).toUpperCase() : (CLASS_EMOJIS[avatar || 'default'] || hunterName.charAt(0).toUpperCase())}
+      <AvatarFallback className="bg-primary/20 text-primary font-bold flex items-center justify-center w-full h-full">
+        {isClassEmoji 
+          ? CLASS_EMOJIS[avatar!.toLowerCase()]
+          : avatar && CLASS_EMOJIS[avatar] 
+            ? CLASS_EMOJIS[avatar]
+            : hunterName.charAt(0).toUpperCase()
+        }
       </AvatarFallback>
     </Avatar>
   );
