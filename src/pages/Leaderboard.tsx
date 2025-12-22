@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { HunterProfileModal } from '@/components/HunterProfileModal';
 import { HunterAvatar } from '@/components/HunterAvatar';
+import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trophy, Medal, Crown, Globe, Calendar, Target, User, TrendingUp, 
+import {
+  Trophy, Medal, Crown, Globe, Calendar, Target, User, TrendingUp,
   Swords, Flame, Sparkles, Shield, Star, Zap, ChevronDown, Hash,
   ArrowRight, UserCircle, Clock
 } from 'lucide-react';
@@ -233,18 +234,27 @@ const PodiumCard = ({
         </motion.div>
         
         {/* Avatar */}
-        <div className={`relative ${config.avatarSize} rounded-full ${config.avatarBorder} overflow-hidden flex items-center justify-center bg-slate-800`}>
-          {position === 1 && (
-            <div className="absolute inset-0 bg-yellow-500/20 animate-pulse z-0" />
+        <div
+          className={cn(
+            'relative aspect-square rounded-full p-1',
+            config.avatarSize,
+            config.avatarBorder,
+            'bg-slate-900/40'
           )}
-          <HunterAvatar
-            avatar={entry.avatar}
-            hunterName={entry.hunterName}
-            // Let the wrapper control the size to avoid nested sizing glitches
-            size="md"
-            showBorder={false}
-            className="w-full h-full"
-          />
+          style={{ boxShadow: config.glowStyle }}
+        >
+          {position === 1 && (
+            <div className="absolute inset-0 rounded-full bg-yellow-500/15 animate-pulse" />
+          )}
+          <div className="relative z-10 h-full w-full rounded-full overflow-hidden bg-slate-800">
+            <HunterAvatar
+              avatar={entry.avatar}
+              hunterName={entry.hunterName}
+              size="md"
+              showBorder={false}
+              className="h-full w-full"
+            />
+          </div>
         </div>
         
         {/* Name */}

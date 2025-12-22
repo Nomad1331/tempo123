@@ -54,7 +54,10 @@ export const HunterAvatar = ({
     normalized.startsWith('https://') ||
     normalized.startsWith('/');
 
-  const classEmoji = CLASS_EMOJIS[normalizedLower];
+  const classEmoji = CLASS_EMOJIS[normalizedLower] || CLASS_EMOJIS.default;
+  const fallback = normalizedLower && CLASS_EMOJIS[normalizedLower]
+    ? CLASS_EMOJIS[normalizedLower]
+    : classEmoji;
 
   return (
     <Avatar
@@ -74,7 +77,7 @@ export const HunterAvatar = ({
         />
       ) : null}
       <AvatarFallback className="bg-primary/20 text-primary font-bold flex items-center justify-center">
-        {classEmoji || hunterName.charAt(0).toUpperCase()}
+        {fallback}
       </AvatarFallback>
     </Avatar>
   );
