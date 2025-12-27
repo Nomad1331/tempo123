@@ -89,16 +89,48 @@ const Awakening = () => {
   ];
 
   // Show loading spinner while auth state is being determined
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground font-rajdhani">Loading your hunter data...</p>
-        </div>
+  const [dataTimeout, setDataTimeout] = useState(false);
+
+useEffect(() => {
+  // Set a 10-second timeout
+  const timer = setTimeout(() => {
+    if (authLoading) {
+      console.error('Data authLoading timeout - forcing render');
+      setDataTimeout(true);
+    }
+  }, 10000);
+
+  return () => clearTimeout(timer);
+}, [authLoading]);
+
+if ((authLoading || !user) && !dataTimeout) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-cyan-400">Loading your hunter data...</p>
+        <p className="text-xs text-slate-500 mt-2">This is taking longer than usual...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+// If timeout reached but still no data, show error
+if (dataTimeout && !user) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <p className="text-red-400">⚠️ Failed to load hunter data</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24">
