@@ -2,6 +2,13 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [1.23.0] - 2025-01-05
+
+### Added
+- **Discord Bot Auto-Sync**: Bot now automatically syncs XP and class changes to the web app in real-time
+  - XP syncs after message rewards, voice rewards, daily claims, and admin addxp commands
+  - Class selection syncs immediately when users pick their class
+
 ## [1.22.0] - 2025-12-12
 
 ### Added
