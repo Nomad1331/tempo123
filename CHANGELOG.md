@@ -2,6 +2,17 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.10.0] - 2025-01-06
+
+### Added
+- **Two-Way Discord Bot Sync**: Bot can now pull stats from the web app, keeping both in perfect sync
+  - `/webstats` - View your web app stats directly in Discord (level, rank, XP, gold, gems, credits, attributes)
+  - `/weblink` - Check if your Discord account is linked to the web app
+  - `get_web_stats()` and `verify_web_link()` methods in database.py for API communication
+
+### Fixed
+- Fixed `get_web_stats` using wrong action (was `sync_stats`, now correctly uses `get_stats`)
+
 ## [3.9.9] - 2025-01-05
 
 ### Added

@@ -2,6 +2,13 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [1.24.0] - 2025-01-06
+
+### Added
+- **Two-Way Discord Bot Sync**: Bot can now pull stats from the web app
+  - `/webstats` - View your web app stats directly in Discord
+  - `/weblink` - Check if your Discord account is linked
+
 ## [1.23.0] - 2025-01-05
 
 ### Added

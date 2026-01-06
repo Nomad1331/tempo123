@@ -1638,6 +1638,106 @@ async def halloffame_slash(interaction: discord.Interaction):
         return
     await _call_cmd_with_interaction(interaction, 'halloffame', defer=False)
 
+# -------------------------
+# WEB APP SYNC COMMANDS
+# -------------------------
+@bot.tree.command(name="webstats", description="View your stats from the web app")
+async def webstats_slash(interaction: discord.Interaction):
+    if not await defer_interaction(interaction):
+        return
+    
+    ctx = InteractionContext(interaction)
+    
+    # Check if user is linked
+    result = await db.get_web_stats(str(interaction.user.id))
+    
+    if not result.get("success"):
+        error = result.get("error", "Unknown error")
+        if "not linked" in error.lower() or error == "User not linked":
+            await ctx.send(
+                "❌ **Not Linked**\n"
+                "Your Discord account is not linked to the web app.\n"
+                "Log in to the web app with Discord to link your accounts!"
+            )
+        elif "not configured" in error.lower():
+            await ctx.send("❌ Web sync is not configured for this bot.")
+        else:
+            await ctx.send(f"❌ Error fetching web stats: {error}")
+        return
+    
+    data = result.get("data", {})
+    profile = data.get("profile", {})
+    stats = data.get("stats", {})
+    
+    hunter_name = profile.get("hunter_name", "Unknown Hunter")
+    title = profile.get("title", "")
+    level = stats.get("level", 1)
+    total_xp = stats.get("total_xp", 0)
+    weekly_xp = stats.get("weekly_xp", 0)
+    rank = stats.get("rank", "E-Rank")
+    gold = stats.get("gold", 0)
+    gems = stats.get("gems", 0)
+    credits = stats.get("credits", 0)
+    
+    # Stat attributes
+    strength = stats.get("strength", 10)
+    agility = stats.get("agility", 10)
+    intelligence = stats.get("intelligence", 10)
+    vitality = stats.get("vitality", 10)
+    sense = stats.get("sense", 10)
+    
+    embed = discord.Embed(
+        title=f"🌐 {hunter_name}'s Web Stats",
+        description=f"*{title}*" if title else "Solo Leveling System Web App",
+        color=0x7c3aed
+    )
+    
+    embed.add_field(name="📊 Progress", value=f"**Level:** {level}\n**Rank:** {rank}\n**Total XP:** {total_xp:,}\n**Weekly XP:** {weekly_xp:,}", inline=True)
+    embed.add_field(name="💰 Currency", value=f"**Gold:** {gold:,}\n**Gems:** {gems:,}\n**Credits:** {credits:,}", inline=True)
+    embed.add_field(name="⚔️ Stats", value=f"**STR:** {strength} | **AGI:** {agility}\n**INT:** {intelligence} | **VIT:** {vitality}\n**SEN:** {sense}", inline=True)
+    
+    # Show unlocked classes if any
+    unlocked_classes = stats.get("unlocked_classes", [])
+    if unlocked_classes:
+        embed.add_field(name="🎭 Classes", value=", ".join(unlocked_classes), inline=False)
+    
+    embed.set_footer(text="Data synced from Solo Leveling System Web App")
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="weblink", description="Check if your Discord is linked to the web app")
+async def weblink_slash(interaction: discord.Interaction):
+    if not await defer_interaction(interaction):
+        return
+    
+    ctx = InteractionContext(interaction)
+    
+    result = await db.verify_web_link(str(interaction.user.id))
+    
+    if not result.get("success"):
+        error = result.get("error", "Unknown error")
+        if "not configured" in error.lower():
+            await ctx.send("❌ Web sync is not configured for this bot.")
+        else:
+            await ctx.send(f"❌ Error checking link status: {error}")
+        return
+    
+    data = result.get("data", {})
+    linked = data.get("linked", False)
+    hunter_name = data.get("hunter_name")
+    
+    if linked:
+        await ctx.send(
+            f"✅ **Account Linked!**\n"
+            f"Your Discord is linked to web app account: **{hunter_name}**\n"
+            f"Use `/webstats` to view your full web app stats!"
+        )
+    else:
+        await ctx.send(
+            "❌ **Not Linked**\n"
+            "Your Discord account is not linked to the web app.\n"
+            "Log in to the web app using Discord OAuth to link your accounts!"
+        )
+
 # Admin / Manage commands (slash wrappers)
 @bot.tree.command(name="serverstats", description="Show aggregated server stats")
 @discord.app_commands.checks.has_permissions(administrator=True)

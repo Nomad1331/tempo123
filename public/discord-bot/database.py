@@ -265,13 +265,13 @@ class Database:
     
     async def get_web_stats(self, discord_id: str):
         """
-        Get user stats from the web app.
+        Get user stats from the web app (pull from cloud).
         
         Args:
             discord_id: The user's Discord ID
             
         Returns:
-            dict with user stats or error
+            dict with user profile and stats or error
         """
         import config as bot_config
         
@@ -286,7 +286,55 @@ class Database:
                     url,
                     json={
                         "discord_id": str(discord_id),
-                        "action": "sync_stats"
+                        "action": "get_stats"  # Use get_stats to pull data
+                    },
+                    headers={
+                        "Authorization": f"Bearer {bot_config.SUPABASE_SERVICE_ROLE_KEY}",
+                        "X-Bot-Secret": bot_config.BOT_SYNC_SECRET,
+                        "Content-Type": "application/json"
+                    },
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    result = await response.json()
+                    
+                    if response.status == 200:
+                        print(f"✅ Pulled web stats for Discord ID {discord_id}")
+                        return {"success": True, "data": result}
+                    else:
+                        print(f"❌ Pull web stats failed: {result}")
+                        return {"success": False, "error": result.get("error", "Unknown error")}
+                        
+        except asyncio.TimeoutError:
+            print(f"⚠️ Pull web stats timeout for {discord_id}")
+            return {"success": False, "error": "Timeout"}
+        except Exception as e:
+            print(f"❌ Pull web stats error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def verify_web_link(self, discord_id: str):
+        """
+        Check if a Discord ID is linked to a web app account.
+        
+        Args:
+            discord_id: The user's Discord ID
+            
+        Returns:
+            dict with linked status and hunter_name if linked
+        """
+        import config as bot_config
+        
+        if not bot_config.BOT_SYNC_SECRET or not bot_config.SUPABASE_SERVICE_ROLE_KEY:
+            return {"success": False, "error": "Web sync not configured"}
+        
+        url = f"{bot_config.SUPABASE_URL}/functions/v1/bot-sync"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    json={
+                        "discord_id": str(discord_id),
+                        "action": "verify_link"
                     },
                     headers={
                         "Authorization": f"Bearer {bot_config.SUPABASE_SERVICE_ROLE_KEY}",
