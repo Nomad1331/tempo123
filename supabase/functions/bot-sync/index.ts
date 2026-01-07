@@ -378,13 +378,16 @@ serve(async (req) => {
 
         const currentQuests = Array.isArray(questData?.quests) ? questData.quests : [];
         
-        // Create new quest with AI-like analysis
+        // Create new quest with structure matching web app's DailyQuest interface
+        const xpReward = Math.floor(Math.random() * 30) + 20; // 20-50 XP
+        const statOptions = ['strength', 'agility', 'intelligence', 'vitality', 'sense'];
+        const randomStat = statOptions[Math.floor(Math.random() * statOptions.length)];
+        
         const newQuest = {
           id: crypto.randomUUID(),
-          title: questTitle,
-          description: `Quest added from Discord: ${questTitle}`,
-          xp: Math.floor(Math.random() * 30) + 20, // 20-50 XP
-          gold: Math.floor(Math.random() * 15) + 5, // 5-20 gold
+          name: questTitle, // Web app uses 'name' not 'title'
+          xpReward: xpReward, // Web app uses 'xpReward' not 'xp'
+          statBoost: { stat: randomStat, amount: 1 }, // Required by web app
           completed: false,
           createdAt: new Date().toISOString(),
           source: 'discord',
@@ -414,6 +417,8 @@ serve(async (req) => {
         result = {
           success: true,
           quest: newQuest,
+          xp: xpReward,
+          stat: randomStat,
           message: `Quest "${questTitle}" added!`,
         };
         break;
@@ -446,7 +451,8 @@ serve(async (req) => {
         }
 
         const questToComplete = activeQuests[questIndex];
-        const xpReward = questToComplete.xp || 25;
+        // Support both old (xp/gold) and new (xpReward) formats
+        const xpReward = questToComplete.xpReward || questToComplete.xp || 25;
         const goldReward = questToComplete.gold || 10;
 
         // Mark quest as completed

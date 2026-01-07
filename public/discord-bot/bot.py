@@ -1357,11 +1357,111 @@ async def weekly_slash(interaction: discord.Interaction, page: int = 1):
         return
     await _call_cmd_with_interaction(interaction, 'weekly', page, defer=False)
 
-@bot.tree.command(name="stats", description="Detailed stats for a user")
+@bot.tree.command(name="stats", description="View your combined Discord + Web App stats")
 async def stats_slash(interaction: discord.Interaction, member: discord.Member = None):
     if not await defer_interaction(interaction):
         return
-    await _call_cmd_with_interaction(interaction, 'stats', member, defer=False)
+    
+    member = member or interaction.user
+    ctx = InteractionContext(interaction)
+    
+    # Get Discord bot stats
+    user = db.get_user(member.id, interaction.guild.id)
+    if not user:
+        db.create_user(member.id, interaction.guild.id)
+        user = db.get_user(member.id, interaction.guild.id)
+    
+    discord_xp = user.get('xp', 0) if user else 0
+    discord_level = level_from_xp(discord_xp, interaction.guild.id) if user else 0
+    discord_rank = rank_from_level(discord_level)
+    server_rank = db.get_rank(member.id, interaction.guild.id) if user else 0
+    weekly_xp = db.get_user_weekly_xp(member.id, interaction.guild.id, days=7) if user else 0
+    messages = user.get('messages', 0) if user else 0
+    voice_time = user.get('voice_time', 0) if user else 0
+    
+    # Try to get web app stats
+    web_result = await db.get_web_stats(str(member.id))
+    has_web_link = web_result.get("success", False)
+    
+    embed = discord.Embed(
+        title=f"📊 Stats - {member.display_name}",
+        color=0x00d4ff
+    )
+    
+    if has_web_link:
+        # Combined view with web app stats
+        data = web_result.get("data", {})
+        profile = data.get("profile", {})
+        stats = data.get("stats", {})
+        
+        hunter_name = profile.get("hunter_name", member.display_name)
+        title = profile.get("title", "Awakened Hunter")
+        web_level = stats.get("level", 1)
+        web_total_xp = stats.get("total_xp", 0)
+        web_weekly_xp = stats.get("weekly_xp", 0)
+        web_rank = stats.get("rank", "E-Rank")
+        gold = stats.get("gold", 0)
+        gems = stats.get("gems", 0)
+        credits = stats.get("credits", 0)
+        strength = stats.get("strength", 10)
+        agility = stats.get("agility", 10)
+        intelligence = stats.get("intelligence", 10)
+        vitality = stats.get("vitality", 10)
+        sense = stats.get("sense", 10)
+        power = strength + agility + intelligence + vitality + sense
+        
+        embed.title = f"📊 {hunter_name}"
+        embed.description = f"*{title}*"
+        
+        # Web App Progress
+        embed.add_field(
+            name="🌐 Web App",
+            value=f"**Level:** {web_level}\n**Rank:** {web_rank}\n**Total XP:** {web_total_xp:,}\n**Weekly XP:** {web_weekly_xp:,}",
+            inline=True
+        )
+        
+        # Discord Progress
+        embed.add_field(
+            name="💬 Discord",
+            value=f"**Level:** {discord_level}\n**Rank:** {discord_rank}\n**Server Rank:** #{server_rank}\n**Weekly XP:** {weekly_xp:,}",
+            inline=True
+        )
+        
+        # Power & Stats
+        embed.add_field(
+            name=f"⚔️ Power: {power}",
+            value=f"STR: {strength} | AGI: {agility}\nINT: {intelligence} | VIT: {vitality}\nSEN: {sense}",
+            inline=True
+        )
+        
+        # Activity
+        embed.add_field(
+            name="📈 Activity",
+            value=f"**Messages:** {messages:,}\n**Voice:** {voice_time:,}s",
+            inline=True
+        )
+        
+        # Currency
+        embed.add_field(
+            name="💰 Currency",
+            value=f"**Gold:** {gold:,}\n**Gems:** {gems:,}\n**Credits:** {credits:,}",
+            inline=True
+        )
+        
+        embed.set_footer(text="✅ Discord linked to Web App")
+    else:
+        # Discord-only view
+        embed.add_field(name="Rank", value=discord_rank, inline=True)
+        embed.add_field(name="Level", value=str(discord_level), inline=True)
+        embed.add_field(name="Server Rank", value=f"#{server_rank}", inline=True)
+        embed.add_field(name="Total XP", value=f"{discord_xp:,}", inline=True)
+        embed.add_field(name="This Week", value=f"{weekly_xp:,} XP", inline=True)
+        embed.add_field(name="Messages", value=str(messages), inline=True)
+        embed.add_field(name="Voice Time", value=f"{voice_time:,}s", inline=True)
+        
+        embed.set_footer(text="💡 Link your Discord at sololeveling.app for more stats!")
+    
+    await ctx.send(embed=embed)
 
 @bot.tree.command(name="rewards", description="List rewards/role unlocks for ranks")
 async def rewards_slash(interaction: discord.Interaction):
@@ -3524,12 +3624,15 @@ async def viewquests_slash(interaction: discord.Interaction):
     )
     
     for i, quest in enumerate(quests):
-        title = quest.get('title', 'Unnamed Quest')
-        xp = quest.get('xp', 25)
+        # Support both 'title' (old) and 'name' (new) field formats
+        title = quest.get('name') or quest.get('title', 'Unnamed Quest')
+        xp = quest.get('xpReward') or quest.get('xp', 25)
         gold = quest.get('gold', 10)
+        stat = quest.get('statBoost', {}).get('stat', '')
+        stat_text = f" • ⚔️ {stat.capitalize()}" if stat else ""
         embed.add_field(
             name=f"**#{i + 1}** - {title}",
-            value=f"🔮 {xp} XP • 💰 {gold} Gold",
+            value=f"🔮 {xp} XP{stat_text}",
             inline=False
         )
     
@@ -3564,15 +3667,16 @@ async def addquest_slash(interaction: discord.Interaction, quest: str):
         return
     
     quest_data = result.get('quest', {})
-    xp = quest_data.get('xp', 25)
-    gold = quest_data.get('gold', 10)
+    xp = result.get('xp') or quest_data.get('xpReward', 25)
+    stat = result.get('stat') or quest_data.get('statBoost', {}).get('stat', '')
     
     embed = discord.Embed(
         title="✅ QUEST ADDED",
         description=f"**{quest}**",
         color=0x22c55e
     )
-    embed.add_field(name="Rewards", value=f"🔮 {xp} XP • 💰 {gold} Gold", inline=False)
+    stat_text = f"\n⚔️ +1 {stat.capitalize()}" if stat else ""
+    embed.add_field(name="Rewards", value=f"🔮 {xp} XP{stat_text}", inline=False)
     embed.set_footer(text="Quest synced to web app! Use /viewquests to see all quests.")
     
     await interaction.followup.send(embed=embed)
@@ -3601,6 +3705,7 @@ async def complete_slash(interaction: discord.Interaction, quest_number: int):
         return
     
     quest = result.get('quest', {})
+    quest_title = quest.get('name') or quest.get('title', 'Quest')
     xp_earned = result.get('xp_earned', 0)
     gold_earned = result.get('gold_earned', 0)
     leveled_up = result.get('leveled_up', False)
@@ -3608,10 +3713,13 @@ async def complete_slash(interaction: discord.Interaction, quest_number: int):
     
     embed = discord.Embed(
         title="⚔️ QUEST COMPLETE!",
-        description=f"**{quest.get('title', 'Quest')}**",
+        description=f"**{quest_title}**",
         color=0xf59e0b
     )
-    embed.add_field(name="Rewards Earned", value=f"🔮 +{xp_earned} XP\n💰 +{gold_earned} Gold", inline=False)
+    rewards_text = f"🔮 +{xp_earned} XP"
+    if gold_earned > 0:
+        rewards_text += f"\n💰 +{gold_earned} Gold"
+    embed.add_field(name="Rewards Earned", value=rewards_text, inline=False)
     
     if leveled_up:
         embed.add_field(name="🎉 LEVEL UP!", value=f"You reached **Level {new_level}**!", inline=False)

@@ -66,9 +66,11 @@ export const SortableQuestCard = ({ quest, onComplete, onEdit, onDelete }: Sorta
           </h3>
           <div className="flex gap-4 text-sm">
             <span className="text-primary">+{quest.xpReward} XP</span>
-            <span className="text-secondary">
-              {quest.statBoost.stat} +{quest.statBoost.amount}
-            </span>
+            {quest.statBoost && (
+              <span className="text-secondary">
+                {quest.statBoost.stat} +{quest.statBoost.amount}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">

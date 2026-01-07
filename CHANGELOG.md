@@ -2,6 +2,30 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.11.1] - 2025-01-07
+
+### Fixed
+- **Quest Page Crash Fix**: Fixed crash when viewing quests added from Discord bot
+  - Root cause: Bot-created quests were missing the `statBoost` field required by `SortableQuestCard`
+  - Solution: Updated edge function to create quests with proper `name`, `xpReward`, and `statBoost` fields matching web app's `DailyQuest` interface
+  - `SortableQuestCard` now safely handles quests without `statBoost` (optional display)
+- **Unnamed Quests Display**: Fixed "Unnamed Quest" showing for bot-added quests
+  - Bot now uses `name` field instead of `title` to match web app format
+  - `/viewquests` command now checks both `name` and `title` fields for backwards compatibility
+
+### Improved
+- **Merged /stats Command**: Combined `/stats` and `/webstats` into a single unified `/stats` command
+  - Shows both Discord bot stats (messages, voice time, server rank) AND web app stats (level, XP, power, currency)
+  - Automatically detects if user is linked to web app
+  - Unlinked users see Discord-only stats with prompt to link
+- **Quest Rewards Display**: `/addquest` and `/viewquests` now show stat boosts instead of gold
+- **Quest Completion Display**: `/complete` command shows stat boost earned
+
+### Technical
+- Edge function `add_quest` now creates quests with `name`, `xpReward`, `statBoost` fields
+- Edge function `complete_quest` supports both old and new quest formats
+- Bot commands handle both `name`/`title` and `xpReward`/`xp` field variations
+
 ## [3.11.0] - 2025-01-06
 
 ### Added - Discord Bot Web App Integration Commands
