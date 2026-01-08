@@ -3909,7 +3909,79 @@ async def card_slash(interaction: discord.Interaction):
             await interaction.followup.send(f"❌ Error: {error}")
         return
     
-    # Build a text-based stats card since we can't generate images in Discord bot
+    # Get web app data for card generation
+    hunter_name = result.get('hunter_name', 'Hunter')[:20]
+    level = result.get('level', 1)
+    rank = result.get('rank', 'E-Rank')
+    total_xp = result.get('total_xp', 0)
+    
+    # Calculate XP progress (web app formula: level * 100)
+    if level <= 1:
+        current_level_xp = total_xp
+        next_level_xp = 100 if level == 0 else 200
+    else:
+        xp_at_current_level = sum(l * 100 for l in range(1, level + 1))
+        next_level_xp = (level + 1) * 100
+        current_level_xp = total_xp - xp_at_current_level
+        if current_level_xp < 0:
+            current_level_xp = 0
+    
+    # Generate the card image
+    try:
+        avatar_url = interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url
+        
+        card_path = create_rank_card(
+            username=hunter_name,
+            avatar_url=avatar_url,
+            level=level,
+            rank_name=rank,
+            server_rank=1,  # Web app user
+            current_xp=current_level_xp,
+            needed_xp=next_level_xp,
+            total_xp=total_xp
+        )
+        
+        if card_path:
+            # Create embed with stats summary
+            power = result.get('power', 50)
+            stats = result.get('stats', {})
+            
+            embed = discord.Embed(
+                title=f"🎴 {hunter_name.upper()}'s Hunter Card",
+                description=f"*{result.get('title', 'Awakened Hunter')}*",
+                color=0x7c3aed
+            )
+            embed.add_field(name="⚡ Power", value=f"**{power}**", inline=True)
+            embed.add_field(name="💰 Gold", value=f"**{result.get('gold', 0):,}**", inline=True)
+            embed.add_field(name="💎 Gems", value=f"**{result.get('gems', 0):,}**", inline=True)
+            
+            stats_text = (
+                f"💪 STR: {stats.get('strength', 10)} | "
+                f"⚡ AGI: {stats.get('agility', 10)} | "
+                f"🧠 INT: {stats.get('intelligence', 10)} | "
+                f"❤️ VIT: {stats.get('vitality', 10)} | "
+                f"👁️ SEN: {stats.get('sense', 10)}"
+            )
+            embed.add_field(name="📊 Stats", value=stats_text, inline=False)
+            embed.set_footer(text="\"I am a Hunter chosen by The System\"")
+            
+            await interaction.followup.send(embed=embed, file=discord.File(card_path))
+            
+            # Clean up temp file
+            try:
+                os.remove(card_path)
+            except:
+                pass
+        else:
+            # Fallback to text-only if image generation fails
+            await _send_text_card(interaction, result)
+    except Exception as e:
+        print(f"Error generating card image: {e}")
+        # Fallback to text-only
+        await _send_text_card(interaction, result)
+
+async def _send_text_card(interaction: discord.Interaction, result: dict):
+    """Fallback text-based card when image generation fails."""
     hunter_name = result.get('hunter_name', 'Hunter')
     title = result.get('title', 'Awakened Hunter')
     level = result.get('level', 1)
@@ -3924,28 +3996,19 @@ async def card_slash(interaction: discord.Interaction):
         color=0x7c3aed
     )
     
-    # Header info
     embed.add_field(name="Level", value=f"**{level}**", inline=True)
     embed.add_field(name="Rank", value=f"**{rank}**", inline=True)
     embed.add_field(name="Power", value=f"**{power}** ⚡", inline=True)
     
-    # Stats
-    str_val = stats.get('strength', 10)
-    agi_val = stats.get('agility', 10)
-    int_val = stats.get('intelligence', 10)
-    vit_val = stats.get('vitality', 10)
-    sen_val = stats.get('sense', 10)
-    
     stats_text = (
-        f"💪 **STR:** {str_val}\n"
-        f"⚡ **AGI:** {agi_val}\n"
-        f"🧠 **INT:** {int_val}\n"
-        f"❤️ **VIT:** {vit_val}\n"
-        f"👁️ **SEN:** {sen_val}"
+        f"💪 **STR:** {stats.get('strength', 10)}\n"
+        f"⚡ **AGI:** {stats.get('agility', 10)}\n"
+        f"🧠 **INT:** {stats.get('intelligence', 10)}\n"
+        f"❤️ **VIT:** {stats.get('vitality', 10)}\n"
+        f"👁️ **SEN:** {stats.get('sense', 10)}"
     )
     embed.add_field(name="📊 Stats", value=stats_text, inline=False)
     
-    # Resources
     embed.add_field(name="💰 Gold", value=f"{gold:,}", inline=True)
     embed.add_field(name="💎 Gems", value=f"{result.get('gems', 0):,}", inline=True)
     embed.add_field(name="🎫 Credits", value=f"{result.get('credits', 0):,}", inline=True)

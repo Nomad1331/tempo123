@@ -141,11 +141,23 @@ export const useCloudSync = () => {
       ? currentLocalStats.avatar 
       : (profile.avatar || currentLocalStats.avatar || 'default');
     
-    // CRITICAL: For unlocked items (frames, classes), ALWAYS merge both sources to prevent loss
-    // This ensures purchased frames are never lost due to sync timing issues
+    // CRITICAL: For unlocked items (frames, classes), ALWAYS merge ALL sources to prevent loss
+    // This ensures purchased frames AND supporter frames are never lost due to sync timing issues
+    
+    // Also check local supporter benefits for redeemed frames
+    const supporterBenefitsRaw = localStorage.getItem('soloLevelingSupporterBenefits');
+    let supporterFrames: string[] = [];
+    if (supporterBenefitsRaw) {
+      try {
+        const supporterBenefits = JSON.parse(supporterBenefitsRaw);
+        supporterFrames = supporterBenefits.unlockedFrames || [];
+      } catch {}
+    }
+    
     const mergedUnlockedFrames = [...new Set([
       ...(stats.unlocked_card_frames || ['default']),
       ...(currentLocalStats.unlockedCardFrames || ['default']),
+      ...supporterFrames,
     ])];
     
     const mergedUnlockedClasses = [...new Set([

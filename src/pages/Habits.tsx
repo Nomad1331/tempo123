@@ -11,9 +11,10 @@ import { toast } from "@/hooks/use-toast";
 import { getTodayString } from "@/lib/dateUtils";
 import HabitGrid from "@/components/HabitGrid";
 import HabitGoalCard from "@/components/HabitGoalCard";
+import HabitCalendarView from "@/components/HabitCalendarView";
 import { TimezoneClock } from "@/components/TimezoneClock";
 import { HabitStatistics } from "@/components/HabitStatistics";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Calendar } from "lucide-react";
 
 const HABIT_ICONS = ["🌱", "💪", "📚", "🧘", "🎯", "🏃", "💻", "🎨", "🎵", "💧"];
 const HABIT_COLORS = [
@@ -415,13 +416,22 @@ const Habits = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="month" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-4 mb-6">
+      <Tabs defaultValue="calendar" className="w-full">
+        <TabsList className="grid w-full max-w-lg grid-cols-5 mb-6">
+          <TabsTrigger value="calendar" className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            <span className="hidden sm:inline">Calendar</span>
+          </TabsTrigger>
           <TabsTrigger value="month">Month</TabsTrigger>
           <TabsTrigger value="agenda">Agenda</TabsTrigger>
           <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="stats">Stats</TabsTrigger>
         </TabsList>
+
+        {/* Calendar View - New default */}
+        <TabsContent value="calendar" className="space-y-6">
+          <HabitCalendarView habits={habits} onToggle={toggleDayCompletion} />
+        </TabsContent>
 
         <TabsContent value="month" className="space-y-6">
           {activeHabits.length === 0 ? (

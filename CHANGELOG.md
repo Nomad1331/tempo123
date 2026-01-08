@@ -2,6 +2,38 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.12.0] - 2025-01-08
+
+### Added
+- **Habit Calendar View**: New calendar-style habit tracker showing habits in rows and dates in columns
+  - Default view when opening Habits page
+  - Checkboxes for quick completion across all habits
+  - Shows last 14 days with today highlighted
+  - Legend for completion status
+
+### Fixed
+- **Supporter Frame Sync Across Devices**: Fixed supporter-exclusive frames not syncing between devices
+  - Frames redeemed via code now sync to cloud `player_stats.unlocked_card_frames`
+  - On login, all sources merged (cloud, local, supporter benefits)
+  - Same frames now show as unlocked on all devices
+
+### Improved
+- **Discord /card Command**: Now generates actual stats card image instead of text embed
+  - Uses the same rank card template as /xp command
+  - Shows web app stats with image
+  - Falls back to text embed if image generation fails
+
+- **Class Sync (Discord ↔ Web App)**: Class chosen in Discord now syncs to web app
+  - Uses `link_class` action in edge function
+  - Class added to `unlocked_classes` array in player_stats
+
+### Technical
+- Added `HabitCalendarView` component for new calendar habit view
+- Updated `useCodeRedemption` to sync supporter frames to cloud on redemption
+- Updated `useCloudSync` to merge supporter frames from localStorage on sync
+- Added `sync_class_to_web()` method to database.py
+- Deployed updated bot-sync edge function
+
 ## [3.11.3] - 2025-01-08
 
 ### Fixed

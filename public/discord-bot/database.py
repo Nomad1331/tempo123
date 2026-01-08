@@ -1322,3 +1322,36 @@ class Database:
         except Exception as e:
             print(f"❌ Get card data error: {e}")
             return {"success": False, "error": str(e)}
+    
+    async def sync_class_to_web(self, discord_id: str, class_id: str):
+        """Sync user's class selection to web app."""
+        import config as bot_config
+        
+        if not bot_config.BOT_SYNC_SECRET or not bot_config.SUPABASE_SERVICE_ROLE_KEY:
+            return {"success": False, "error": "Web sync not configured"}
+        
+        url = f"{bot_config.SUPABASE_URL}/functions/v1/bot-sync"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    json={
+                        "discord_id": str(discord_id),
+                        "action": "link_class",
+                        "data": {"class_id": class_id}
+                    },
+                    headers={
+                        "Authorization": f"Bearer {bot_config.SUPABASE_SERVICE_ROLE_KEY}",
+                        "X-Bot-Secret": bot_config.BOT_SYNC_SECRET,
+                        "Content-Type": "application/json"
+                    },
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    result = await response.json()
+                    if result.get('success'):
+                        print(f"✅ Synced class {class_id} to web app for {discord_id}")
+                    return result
+        except Exception as e:
+            print(f"❌ Sync class error: {e}")
+            return {"success": False, "error": str(e)}

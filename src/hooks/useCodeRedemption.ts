@@ -1,18 +1,22 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   SupporterBenefits, 
   getSupporterBenefits, 
   setSupporterBenefits,
   SupporterTier,
-  getUnlockedFramesForTier 
+  getUnlockedFramesForTier,
+  SUPPORTER_FRAME_TIERS
 } from '@/lib/supporters';
+import { storage } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 import { playSuccess, playError } from '@/lib/sounds';
 
 export const useCodeRedemption = () => {
   const [loading, setLoading] = useState(false);
   const [benefits, setBenefits] = useState<SupporterBenefits>(() => getSupporterBenefits());
+  const { user } = useAuth();
 
   const redeemCode = async (code: string): Promise<boolean> => {
     if (!code.trim()) {
@@ -83,8 +87,7 @@ export const useCodeRedemption = () => {
         hunterName = supporterData?.hunter_name || null;
       }
 
-      // Increment usage count (we'll do this even though RLS might block UPDATE)
-      // In a real scenario, you'd use an edge function for this
+      // Increment usage count
       await supabase
         .from('redemption_codes')
         .update({ current_uses: codeData.current_uses + 1 })
@@ -98,8 +101,8 @@ export const useCodeRedemption = () => {
       const newBenefits: SupporterBenefits = {
         tier,
         badge: codeData.unlocks_badge,
-        frame: codeData.unlocks_frame, // Primary frame from code
-        unlockedFrames, // All tier-unlocked frames
+        frame: codeData.unlocks_frame,
+        unlockedFrames,
         title: codeData.unlocks_title,
         hunterName,
         redeemedAt: new Date().toISOString(),
@@ -107,6 +110,41 @@ export const useCodeRedemption = () => {
 
       setSupporterBenefits(newBenefits);
       setBenefits(newBenefits);
+
+      // CRITICAL: Also sync to cloud player_stats so frames persist across devices
+      if (user) {
+        try {
+          // Get current cloud frames
+          const { data: statsData } = await supabase
+            .from('player_stats')
+            .select('unlocked_card_frames')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          const currentCloudFrames = statsData?.unlocked_card_frames || ['default'];
+          
+          // Merge supporter frames with existing frames
+          const mergedFrames = [...new Set([...currentCloudFrames, ...unlockedFrames])];
+          
+          // Update cloud
+          await supabase
+            .from('player_stats')
+            .update({ unlocked_card_frames: mergedFrames })
+            .eq('user_id', user.id);
+          
+          // Also update local storage
+          const localStats = storage.getStats();
+          storage.setStats({
+            ...localStats,
+            unlockedCardFrames: mergedFrames,
+          });
+          
+          // Trigger storage event for other components
+          window.dispatchEvent(new Event('storage'));
+        } catch (syncError) {
+          console.error('Error syncing supporter frames to cloud:', syncError);
+        }
+      }
 
       playSuccess();
       toast({
