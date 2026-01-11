@@ -43,8 +43,6 @@ const DEFAULT_STATS: PlayerStats = {
   unlockedClasses: [],
   isFirstTime: true,
 };
-  isFirstTime: true,
-};
 
 export const usePlayerStats = () => {
   const { user } = useAuth();
