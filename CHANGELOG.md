@@ -2,6 +2,16 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.1] - 2025-01-11
+
+### Fixed
+- **usePlayerStats Syntax Error**: Fixed duplicate code block causing build failure
+- **Cloud-Only Verification**: All hooks now properly sync from Supabase with no local storage fallbacks
+
+### Technical
+- Removed duplicate `isFirstTime: true` block in `usePlayerStats.ts`
+- All game data (habits, quests, gates, streaks, challenges, player stats) now 100% cloud-based
+
 ## [3.13.0] - 2025-01-10
 
 ### Changed - Cloud-Only Architecture
