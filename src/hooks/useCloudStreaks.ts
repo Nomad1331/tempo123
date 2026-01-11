@@ -130,6 +130,40 @@ export const useCloudStreaks = () => {
     fetchStreak();
   }, [fetchStreak]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_streaks_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_streaks',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Streak updated from another device:', payload);
+          if (payload.new) {
+            const p = payload.new as any;
+            setStreak({
+              currentStreak: p.current_streak,
+              longestStreak: p.longest_streak,
+              lastCompletionDate: p.last_completion_date,
+              totalRewards: p.total_rewards,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return {
     streak,
     loading,

@@ -157,6 +157,35 @@ export const useCloudHabits = () => {
     fetchHabits();
   }, [fetchHabits]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_habits_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_habits',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Habits updated from another device:', payload);
+          if (payload.new && 'habits' in payload.new) {
+            const cloudHabits = (payload.new.habits as unknown as Habit[]) || [];
+            setHabits(cloudHabits);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return {
     habits,
     loading,

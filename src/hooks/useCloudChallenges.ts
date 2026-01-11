@@ -146,6 +146,42 @@ export const useCloudChallenges = () => {
     fetchChallenges();
   }, [fetchChallenges]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_challenges_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_challenges',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Challenges updated from another device:', payload);
+          if (payload.new) {
+            const p = payload.new as any;
+            setData({
+              challenges: (p.challenges as unknown as any[]) || [],
+              necroChallenge: p.necro_challenge as unknown as any | null,
+              claimedChallenges: (p.claimed_challenges as unknown as Record<string, boolean>) || {},
+              xpHistory: (p.xp_history as unknown as XPHistoryEntry[]) || [],
+              userSettings: (p.user_settings as unknown as UserSettings) || DEFAULT_DATA.userSettings,
+              activeBoost: p.active_boost as unknown as any | null,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return {
     ...data,
     loading,

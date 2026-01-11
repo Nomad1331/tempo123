@@ -162,6 +162,79 @@ export const usePlayerStats = () => {
     fetchStats();
   }, [fetchStats]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const statsChannel = supabase
+      .channel('player_stats_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'player_stats',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Player stats updated from another device:', payload);
+          if (payload.new) {
+            const p = payload.new as any;
+            setStats(prev => ({
+              ...prev,
+              level: p.level,
+              xp: p.total_xp - calculateTotalXPForLevel(p.level),
+              totalXP: p.total_xp,
+              rank: p.rank,
+              strength: p.strength,
+              agility: p.agility,
+              intelligence: p.intelligence,
+              vitality: p.vitality,
+              sense: p.sense,
+              availablePoints: p.available_points,
+              gold: p.gold,
+              gems: p.gems,
+              credits: p.credits,
+              selectedCardFrame: p.selected_card_frame || "default",
+              unlockedCardFrames: p.unlocked_card_frames || ["default"],
+              unlockedClasses: p.unlocked_classes || [],
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    const profileChannel = supabase
+      .channel('profiles_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Profile updated from another device:', payload);
+          if (payload.new) {
+            const p = payload.new as any;
+            setStats(prev => ({
+              ...prev,
+              name: p.hunter_name || "Hunter",
+              title: p.title || "Awakened Hunter",
+              avatar: p.avatar || "",
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(statsChannel);
+      supabase.removeChannel(profileChannel);
+    };
+  }, [user]);
+
   // Get active XP boost multiplier
   const getActiveBoostMultiplier = useCallback((): number => {
     // TODO: Implement cloud-based XP boosts

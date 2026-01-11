@@ -213,6 +213,35 @@ export const useCloudGates = () => {
     fetchGates();
   }, [fetchGates]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_gates_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_gates',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Gates updated from another device:', payload);
+          if (payload.new && 'gates' in payload.new) {
+            const cloudGates = (payload.new.gates as unknown as Gate[]) || [];
+            setGates(cloudGates);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return {
     gates,
     loading,

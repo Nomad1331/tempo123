@@ -147,6 +147,38 @@ export const useCloudQuests = () => {
     fetchQuests();
   }, [fetchQuests]);
 
+  // Real-time subscription for instant sync across devices
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('user_quests_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_quests',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Quests updated from another device:', payload);
+          if (payload.new && 'quests' in payload.new) {
+            const cloudQuests = (payload.new.quests as unknown as DailyQuest[]) || [];
+            setQuests(cloudQuests);
+            if ('last_reset_date' in payload.new) {
+              setLastResetDate(payload.new.last_reset_date as string);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   return {
     quests,
     loading,

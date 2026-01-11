@@ -2,6 +2,25 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.2] - 2025-01-11
+
+### Added
+- **Real-Time Sync Across Devices**: All data now syncs instantly without page refresh!
+  - Quests, Habits, Gates, Streaks, Challenges, and Player Stats use Supabase real-time subscriptions
+  - Complete a quest on your phone → see it immediately update on your PC
+  - No more "refresh to see changes" - everything is live
+
+### Security
+- **Ignored False Positive**: Marked supporters table exposure as intentional design
+  - Supporters page is a public "Wall of Fame" for donors
+  - `is_visible` flag allows supporters to opt-out
+  - Ko-fi/Discord usernames are displayed with consent for attribution
+
+### Technical
+- Added `postgres_changes` subscriptions to all cloud hooks:
+  - `useCloudQuests`, `useCloudHabits`, `useCloudGates`, `useCloudStreaks`, `useCloudChallenges`, `usePlayerStats`
+- Real-time channels properly cleaned up on component unmount
+
 ## [3.13.1] - 2025-01-11
 
 ### Fixed
