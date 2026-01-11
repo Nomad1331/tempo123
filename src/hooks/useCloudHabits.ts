@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Habit } from '@/lib/storage';
@@ -9,6 +9,39 @@ export const useCloudHabits = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  
+  // Refs to prevent race conditions
+  const isInitializing = useRef(false);
+  const localUpdatePending = useRef(false);
+
+  // Save habits to cloud
+  const saveHabits = useCallback(async (newHabits: Habit[]) => {
+    if (!user) return false;
+
+    try {
+      localUpdatePending.current = true;
+      
+      const { error } = await supabase
+        .from('user_habits')
+        .upsert({
+          user_id: user.id,
+          habits: newHabits as unknown as Json,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      setTimeout(() => {
+        localUpdatePending.current = false;
+      }, 1000);
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving habits:', error);
+      localUpdatePending.current = false;
+      return false;
+    }
+  }, [user]);
 
   // Fetch habits from cloud
   const fetchHabits = useCallback(async () => {
@@ -17,6 +50,9 @@ export const useCloudHabits = () => {
       setLoading(false);
       return;
     }
+
+    if (isInitializing.current) return;
+    isInitializing.current = true;
 
     try {
       const { data, error } = await supabase
@@ -31,7 +67,7 @@ export const useCloudHabits = () => {
         const cloudHabits = (data.habits as unknown as Habit[]) || [];
         setHabits(cloudHabits);
       } else {
-        // No data yet - initialize empty
+        // New user - initialize empty
         setHabits([]);
         await saveHabits([]);
       }
@@ -41,29 +77,9 @@ export const useCloudHabits = () => {
       setHabits([]);
     } finally {
       setLoading(false);
+      isInitializing.current = false;
     }
-  }, [user]);
-
-  // Save habits to cloud
-  const saveHabits = useCallback(async (newHabits: Habit[]) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('user_habits')
-        .upsert({
-          user_id: user.id,
-          habits: newHabits as unknown as Json,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error saving habits:', error);
-      return false;
-    }
-  }, [user]);
+  }, [user, saveHabits]);
 
   // Update habits (local state + cloud)
   const updateHabits = useCallback(async (newHabits: Habit[]) => {
@@ -161,8 +177,10 @@ export const useCloudHabits = () => {
   useEffect(() => {
     if (!user) return;
 
+    const channelName = `user_habits_${user.id}`;
+    
     const channel = supabase
-      .channel('user_habits_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -172,6 +190,11 @@ export const useCloudHabits = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          if (localUpdatePending.current) {
+            console.log('Ignoring realtime update - local update pending');
+            return;
+          }
+          
           console.log('Habits updated from another device:', payload);
           if (payload.new && 'habits' in payload.new) {
             const cloudHabits = (payload.new.habits as unknown as Habit[]) || [];

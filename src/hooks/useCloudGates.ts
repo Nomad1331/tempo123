@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Gate } from '@/lib/storage';
@@ -72,6 +72,39 @@ export const useCloudGates = () => {
   const [gates, setGates] = useState<Gate[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  
+  // Refs to prevent race conditions
+  const isInitializing = useRef(false);
+  const localUpdatePending = useRef(false);
+
+  // Save gates to cloud
+  const saveGates = useCallback(async (newGates: Gate[]) => {
+    if (!user) return false;
+
+    try {
+      localUpdatePending.current = true;
+      
+      const { error } = await supabase
+        .from('user_gates')
+        .upsert({
+          user_id: user.id,
+          gates: newGates as unknown as Json,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      setTimeout(() => {
+        localUpdatePending.current = false;
+      }, 1000);
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving gates:', error);
+      localUpdatePending.current = false;
+      return false;
+    }
+  }, [user]);
 
   // Fetch gates from cloud
   const fetchGates = useCallback(async () => {
@@ -80,6 +113,9 @@ export const useCloudGates = () => {
       setLoading(false);
       return;
     }
+
+    if (isInitializing.current) return;
+    isInitializing.current = true;
 
     try {
       const { data, error } = await supabase
@@ -91,41 +127,24 @@ export const useCloudGates = () => {
       if (error) throw error;
 
       if (data) {
+        // Data exists - use it directly (don't check length, trust the data)
         const cloudGates = (data.gates as unknown as Gate[]) || [];
-        setGates(cloudGates.length > 0 ? cloudGates : DEFAULT_GATES);
+        setGates(cloudGates);
       } else {
+        // New user - initialize with defaults
+        console.log('New user detected, initializing with default gates');
         setGates(DEFAULT_GATES);
         await saveGates(DEFAULT_GATES);
       }
       setInitialized(true);
     } catch (error) {
       console.error('Error fetching gates:', error);
-      setGates(DEFAULT_GATES);
+      setGates([]);
     } finally {
       setLoading(false);
+      isInitializing.current = false;
     }
-  }, [user]);
-
-  // Save gates to cloud
-  const saveGates = useCallback(async (newGates: Gate[]) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('user_gates')
-        .upsert({
-          user_id: user.id,
-          gates: newGates as unknown as Json,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error saving gates:', error);
-      return false;
-    }
-  }, [user]);
+  }, [user, saveGates]);
 
   // Update gates (local state + cloud)
   const updateGates = useCallback(async (newGates: Gate[]) => {
@@ -217,8 +236,10 @@ export const useCloudGates = () => {
   useEffect(() => {
     if (!user) return;
 
+    const channelName = `user_gates_${user.id}`;
+    
     const channel = supabase
-      .channel('user_gates_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -228,6 +249,11 @@ export const useCloudGates = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          if (localUpdatePending.current) {
+            console.log('Ignoring realtime update - local update pending');
+            return;
+          }
+          
           console.log('Gates updated from another device:', payload);
           if (payload.new && 'gates' in payload.new) {
             const cloudGates = (payload.new.gates as unknown as Gate[]) || [];

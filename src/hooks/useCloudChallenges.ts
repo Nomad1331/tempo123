@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { XPHistoryEntry, UserSettings } from '@/lib/storage';
@@ -27,6 +27,44 @@ export const useCloudChallenges = () => {
   const [data, setData] = useState<ChallengeData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  
+  // Refs to prevent race conditions
+  const isInitializing = useRef(false);
+  const localUpdatePending = useRef(false);
+
+  // Save challenges to cloud
+  const saveChallenges = useCallback(async (newData: ChallengeData) => {
+    if (!user) return false;
+
+    try {
+      localUpdatePending.current = true;
+      
+      const { error } = await supabase
+        .from('user_challenges')
+        .upsert({
+          user_id: user.id,
+          challenges: newData.challenges as unknown as Json,
+          necro_challenge: newData.necroChallenge as unknown as Json,
+          claimed_challenges: newData.claimedChallenges as unknown as Json,
+          xp_history: newData.xpHistory as unknown as Json,
+          user_settings: newData.userSettings as unknown as Json,
+          active_boost: newData.activeBoost as unknown as Json,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      setTimeout(() => {
+        localUpdatePending.current = false;
+      }, 1000);
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving challenges:', error);
+      localUpdatePending.current = false;
+      return false;
+    }
+  }, [user]);
 
   // Fetch challenges from cloud
   const fetchChallenges = useCallback(async () => {
@@ -35,6 +73,9 @@ export const useCloudChallenges = () => {
       setLoading(false);
       return;
     }
+
+    if (isInitializing.current) return;
+    isInitializing.current = true;
 
     try {
       const { data: cloudData, error } = await supabase
@@ -64,34 +105,9 @@ export const useCloudChallenges = () => {
       setData(DEFAULT_DATA);
     } finally {
       setLoading(false);
+      isInitializing.current = false;
     }
-  }, [user]);
-
-  // Save challenges to cloud
-  const saveChallenges = useCallback(async (newData: ChallengeData) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('user_challenges')
-        .upsert({
-          user_id: user.id,
-          challenges: newData.challenges as unknown as Json,
-          necro_challenge: newData.necroChallenge as unknown as Json,
-          claimed_challenges: newData.claimedChallenges as unknown as Json,
-          xp_history: newData.xpHistory as unknown as Json,
-          user_settings: newData.userSettings as unknown as Json,
-          active_boost: newData.activeBoost as unknown as Json,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error saving challenges:', error);
-      return false;
-    }
-  }, [user]);
+  }, [user, saveChallenges]);
 
   // Update all data
   const updateData = useCallback(async (newData: Partial<ChallengeData>) => {
@@ -150,8 +166,10 @@ export const useCloudChallenges = () => {
   useEffect(() => {
     if (!user) return;
 
+    const channelName = `user_challenges_${user.id}`;
+    
     const channel = supabase
-      .channel('user_challenges_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -161,6 +179,11 @@ export const useCloudChallenges = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          if (localUpdatePending.current) {
+            console.log('Ignoring realtime update - local update pending');
+            return;
+          }
+          
           console.log('Challenges updated from another device:', payload);
           if (payload.new) {
             const p = payload.new as any;

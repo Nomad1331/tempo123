@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DailyQuest } from '@/lib/storage';
@@ -18,6 +18,43 @@ export const useCloudQuests = () => {
   const [lastResetDate, setLastResetDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  
+  // Refs to prevent race conditions
+  const isInitializing = useRef(false);
+  const lastSaveTime = useRef<number>(0);
+  const localUpdatePending = useRef(false);
+
+  // Save quests to cloud (defined first to avoid dependency issues)
+  const saveQuests = useCallback(async (newQuests: DailyQuest[], resetDate?: string, currentLastResetDate?: string | null) => {
+    if (!user) return false;
+
+    try {
+      localUpdatePending.current = true;
+      lastSaveTime.current = Date.now();
+      
+      const { error } = await supabase
+        .from('user_quests')
+        .upsert({
+          user_id: user.id,
+          quests: newQuests as unknown as Json,
+          last_reset_date: resetDate || currentLastResetDate || new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      // Reset pending flag after a short delay to allow realtime to settle
+      setTimeout(() => {
+        localUpdatePending.current = false;
+      }, 1000);
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving quests:', error);
+      localUpdatePending.current = false;
+      return false;
+    }
+  }, [user]);
 
   // Fetch quests from cloud
   const fetchQuests = useCallback(async () => {
@@ -26,6 +63,12 @@ export const useCloudQuests = () => {
       setLoading(false);
       return;
     }
+
+    // Prevent multiple simultaneous initializations
+    if (isInitializing.current) {
+      return;
+    }
+    isInitializing.current = true;
 
     try {
       const { data, error } = await supabase
@@ -37,53 +80,40 @@ export const useCloudQuests = () => {
       if (error) throw error;
 
       if (data) {
+        // Data exists - use it directly, even if empty array
         const cloudQuests = (data.quests as unknown as DailyQuest[]) || [];
-        setQuests(cloudQuests.length > 0 ? cloudQuests : DEFAULT_QUESTS);
+        setQuests(cloudQuests);
         setLastResetDate(data.last_reset_date);
       } else {
-        // No data yet - initialize with defaults
+        // No data exists - this is a NEW user, initialize with defaults
+        console.log('New user detected, initializing with default quests');
         setQuests(DEFAULT_QUESTS);
-        await saveQuests(DEFAULT_QUESTS);
+        const today = new Date().toISOString().split('T')[0];
+        setLastResetDate(today);
+        await saveQuests(DEFAULT_QUESTS, today, today);
       }
       setInitialized(true);
     } catch (error) {
       console.error('Error fetching quests:', error);
-      setQuests(DEFAULT_QUESTS);
+      // On error, set to empty to avoid overwriting data
+      setQuests([]);
     } finally {
       setLoading(false);
+      isInitializing.current = false;
     }
-  }, [user]);
-
-  // Save quests to cloud
-  const saveQuests = useCallback(async (newQuests: DailyQuest[], resetDate?: string) => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .from('user_quests')
-        .upsert({
-          user_id: user.id,
-          quests: newQuests as unknown as Json,
-          last_reset_date: resetDate || lastResetDate || new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('Error saving quests:', error);
-      return false;
-    }
-  }, [user, lastResetDate]);
+  }, [user, saveQuests]);
 
   // Update quests (local state + cloud)
   const updateQuests = useCallback(async (newQuests: DailyQuest[]) => {
     setQuests(newQuests);
-    await saveQuests(newQuests);
-  }, [saveQuests]);
+    await saveQuests(newQuests, undefined, lastResetDate);
+  }, [saveQuests, lastResetDate]);
 
   // Complete a quest
   const completeQuest = useCallback(async (questId: string) => {
+    const quest = quests.find(q => q.id === questId);
+    if (!quest || quest.completed) return; // Prevent double completion
+    
     const newQuests = quests.map(q => 
       q.id === questId ? { ...q, completed: true } : q
     );
@@ -118,10 +148,10 @@ export const useCloudQuests = () => {
   // Reset all quests for new day
   const resetQuests = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0];
-    const resetQuests = quests.map(q => ({ ...q, completed: false }));
-    setQuests(resetQuests);
+    const resetQuestsData = quests.map(q => ({ ...q, completed: false }));
+    setQuests(resetQuestsData);
     setLastResetDate(today);
-    await saveQuests(resetQuests, today);
+    await saveQuests(resetQuestsData, today, today);
   }, [quests, saveQuests]);
 
   // Check and auto-reset at midnight
@@ -151,8 +181,11 @@ export const useCloudQuests = () => {
   useEffect(() => {
     if (!user) return;
 
+    // Use unique channel name per user to avoid conflicts
+    const channelName = `user_quests_${user.id}`;
+    
     const channel = supabase
-      .channel('user_quests_changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -162,6 +195,12 @@ export const useCloudQuests = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
+          // Ignore updates from our own recent saves to prevent loops
+          if (localUpdatePending.current) {
+            console.log('Ignoring realtime update - local update pending');
+            return;
+          }
+          
           console.log('Quests updated from another device:', payload);
           if (payload.new && 'quests' in payload.new) {
             const cloudQuests = (payload.new.quests as unknown as DailyQuest[]) || [];

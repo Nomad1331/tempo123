@@ -2,6 +2,35 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.3] - 2025-01-11
+
+### Fixed - CRITICAL
+- **Quest/Data Reset Bug**: Fixed critical race condition causing user data to reset to defaults
+  - Root cause: Multiple browser sessions racing to initialize data simultaneously
+  - Sessions would overwrite each other's data with defaults
+  - Fixed by adding `isInitializing` ref to prevent concurrent fetch/save operations
+  
+- **Empty Array Overwrite Bug**: Fixed bug where empty quests array would trigger default reset
+  - Previously: If quests array was `[]`, code assumed new user and saved defaults
+  - Now: Only saves defaults when database row doesn't exist (truly new users)
+  - Existing users with deleted quests keep their empty array
+  
+- **Realtime Echo Loop**: Fixed realtime updates overwriting local changes
+  - Added `localUpdatePending` flag to ignore echoes from own saves
+  - 1 second cooldown prevents realtime from overwriting recent local updates
+  - No more "complete quest → gets uncompleted by realtime echo"
+
+- **Channel Name Conflicts**: Fixed all users sharing same realtime channel names
+  - Now uses unique channel per user: `user_quests_${user.id}` instead of `user_quests_changes`
+  - Prevents cross-user interference in realtime subscriptions
+
+### Technical
+- All cloud hooks now use `useRef` for initialization locking:
+  - `isInitializing.current` prevents double-fetch race conditions
+  - `localUpdatePending.current` prevents realtime echo overwrites
+- Fixed `saveQuests` dependency in `fetchQuests` callback (was causing stale closures)
+- Applied same fixes to all hooks: Quests, Habits, Gates, Streaks, Challenges
+
 ## [3.13.2] - 2025-01-11
 
 ### Added
