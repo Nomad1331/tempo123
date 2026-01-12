@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { usePlayerStats } from "@/hooks/usePlayerStats";
-import { storage } from "@/lib/storage";
 import { toast } from "@/hooks/use-toast";
-import { Lock, Upload, X, Download, FileUp, BookOpen } from "lucide-react";
+import { Lock, Upload, X, BookOpen } from "lucide-react";
 
 import { CARD_FRAMES, SUPPORTER_EXCLUSIVE_FRAMES, getRarityColor } from "@/lib/cardFrames";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -34,9 +33,8 @@ const TITLE_OPTIONS = [
 ];
 
 const Customize = () => {
-  const { stats } = usePlayerStats();
+  const { stats, updateProfile } = usePlayerStats();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(stats.avatar || "default");

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
-import { storage } from "@/lib/storage";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
 import { LegendaryChallenge } from "@/lib/challenges";
 import { Skull, Crown } from "lucide-react";
 
@@ -10,21 +11,19 @@ export const NecromancerUnlockPopup = () => {
   const [showPopup, setShowPopup] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { stats } = usePlayerStats();
+  const { necroChallenge } = useCloudChallenges();
 
   useEffect(() => {
     // Don't show on challenges page (quests page with challenges tab)
     if (location.pathname === "/quests") return;
 
     // Check if necromancer is already unlocked
-    const stats = storage.getStats();
     const isUnlocked = stats.unlockedClasses?.includes("necromancer") || false;
     if (isUnlocked) return;
 
     // Check if challenge is active and completed (90-day streak reached)
-    const stored = localStorage.getItem("soloLevelingNecroChallenge");
-    if (!stored) return;
-    
-    const necroChallenge: LegendaryChallenge = JSON.parse(stored);
+    if (!necroChallenge) return;
     
     // Only show if challenge was accepted (status is active or completed, not pending)
     if (necroChallenge.status === "pending") return;
@@ -38,7 +37,7 @@ export const NecromancerUnlockPopup = () => {
       const timer = setTimeout(() => setShowPopup(true), 500);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname]);
+  }, [location.pathname, stats.unlockedClasses, necroChallenge]);
 
   const handleGoToClaim = () => {
     setShowPopup(false);

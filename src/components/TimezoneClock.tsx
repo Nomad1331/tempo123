@@ -3,7 +3,7 @@ import { Clock, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { storage } from "@/lib/storage";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
 import { toast } from "@/hooks/use-toast";
 
 // All timezones organized by UTC offset for easy scrolling selection
@@ -48,9 +48,17 @@ const TIMEZONES = [
 ];
 
 export const TimezoneClock = () => {
+  const { userSettings, updateSettings } = useCloudChallenges();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [timezone, setTimezone] = useState(storage.getSettings().timezone);
+  const [timezone, setTimezone] = useState(userSettings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Sync timezone from cloud settings
+  useEffect(() => {
+    if (userSettings?.timezone) {
+      setTimezone(userSettings.timezone);
+    }
+  }, [userSettings?.timezone]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,8 +68,8 @@ export const TimezoneClock = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const saveTimezone = () => {
-    storage.setSettings({ timezone });
+  const saveTimezone = async () => {
+    await updateSettings({ timezone });
     setIsDialogOpen(false);
     toast({
       title: "⏰ Timezone Updated",

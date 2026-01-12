@@ -9,7 +9,6 @@ import {
   getUnlockedFramesForTier,
   SUPPORTER_FRAME_TIERS
 } from '@/lib/supporters';
-import { storage } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 import { playSuccess, playError } from '@/lib/sounds';
 
@@ -111,7 +110,7 @@ export const useCodeRedemption = () => {
       setSupporterBenefits(newBenefits);
       setBenefits(newBenefits);
 
-      // CRITICAL: Also sync to cloud player_stats so frames persist across devices
+      // Sync to cloud player_stats so frames persist across devices
       if (user) {
         try {
           // Get current cloud frames
@@ -131,16 +130,6 @@ export const useCodeRedemption = () => {
             .from('player_stats')
             .update({ unlocked_card_frames: mergedFrames })
             .eq('user_id', user.id);
-          
-          // Also update local storage
-          const localStats = storage.getStats();
-          storage.setStats({
-            ...localStats,
-            unlockedCardFrames: mergedFrames,
-          });
-          
-          // Trigger storage event for other components
-          window.dispatchEvent(new Event('storage'));
         } catch (syncError) {
           console.error('Error syncing supporter frames to cloud:', syncError);
         }

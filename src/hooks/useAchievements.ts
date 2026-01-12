@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { storage } from "@/lib/storage";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
+import { useCloudStreaks } from "@/hooks/useCloudStreaks";
+import { useCloudHabits } from "@/hooks/useCloudHabits";
+import { useCloudGates } from "@/hooks/useCloudGates";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
 import {
   Achievement,
   ACHIEVEMENTS,
@@ -25,15 +29,16 @@ interface AchievementCheckData {
 export const useAchievements = () => {
   const [progress, setProgress] = useState<AchievementProgress>(getAchievementProgress());
   const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement[]>([]);
+  
+  // Get data from cloud hooks
+  const { streak } = useCloudStreaks();
+  const { habits } = useCloudHabits();
+  const { gates } = useCloudGates();
+  const { xpHistory } = useCloudChallenges();
+  const { stats } = usePlayerStats();
 
   // Gather all data needed to check achievements
   const gatherCheckData = useCallback((): AchievementCheckData => {
-    const stats = storage.getStats();
-    const streak = storage.getStreak();
-    const habits = storage.getHabits();
-    const gates = storage.getGates();
-    const xpHistory = storage.getXPHistory();
-
     // Calculate quests completed from XP history
     const questsCompleted = xpHistory.filter(e => e.source === "quest").length;
 
@@ -62,7 +67,7 @@ export const useAchievements = () => {
       habitsWon,
       hasNecromancer,
     };
-  }, []);
+  }, [streak, habits, gates, xpHistory, stats]);
 
   // Check if a specific achievement should be unlocked
   const checkAchievement = useCallback((achievement: Achievement, data: AchievementCheckData): boolean => {

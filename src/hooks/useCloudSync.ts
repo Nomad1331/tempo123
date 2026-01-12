@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { storage, PlayerStats, DailyQuest, Habit, Gate, StreakData, XPHistoryEntry, UserSettings } from '@/lib/storage';
+import { PlayerStats, DailyQuest, Habit, Gate, StreakData, XPHistoryEntry, UserSettings } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
 

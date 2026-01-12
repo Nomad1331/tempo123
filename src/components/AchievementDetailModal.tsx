@@ -1,7 +1,11 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Achievement, RARITY_CONFIG, CATEGORY_CONFIG, isAchievementUnlocked } from "@/lib/achievements";
-import { storage } from "@/lib/storage";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
+import { useCloudStreaks } from "@/hooks/useCloudStreaks";
+import { useCloudHabits } from "@/hooks/useCloudHabits";
+import { useCloudGates } from "@/hooks/useCloudGates";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
 import { cn } from "@/lib/utils";
 
 interface AchievementDetailModalProps {
@@ -11,6 +15,12 @@ interface AchievementDetailModalProps {
 }
 
 export const AchievementDetailModal = ({ achievement, open, onClose }: AchievementDetailModalProps) => {
+  const { stats } = usePlayerStats();
+  const { streak } = useCloudStreaks();
+  const { habits } = useCloudHabits();
+  const { gates } = useCloudGates();
+  const { xpHistory } = useCloudChallenges();
+
   if (!achievement) return null;
 
   const isUnlocked = isAchievementUnlocked(achievement.id);
@@ -27,12 +37,6 @@ export const AchievementDetailModal = ({ achievement, open, onClose }: Achieveme
     if (isManuallyGranted) return null;
     
     if (isUnlocked) return { current: achievement.requirement.value, target: achievement.requirement.value, percentage: 100 };
-
-    const stats = storage.getStats();
-    const streak = storage.getStreak();
-    const habits = storage.getHabits();
-    const gates = storage.getGates();
-    const xpHistory = storage.getXPHistory();
 
     let current = 0;
     const target = achievement.requirement.value;

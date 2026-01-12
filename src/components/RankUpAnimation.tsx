@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { storage } from '@/lib/storage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Swords, Zap, Crown, Flame, Star } from 'lucide-react';
 

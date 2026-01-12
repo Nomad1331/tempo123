@@ -1,5 +1,9 @@
 import { useMemo, useState, useRef } from "react";
-import { storage, XPHistoryEntry, Habit } from "@/lib/storage";
+import { XPHistoryEntry, Habit } from "@/lib/storage";
+import { usePlayerStats } from "@/hooks/usePlayerStats";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
+import { useCloudHabits } from "@/hooks/useCloudHabits";
+import { useCloudStreaks } from "@/hooks/useCloudStreaks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,10 +55,11 @@ const Analytics = () => {
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   
-  const stats = storage.getStats();
-  const xpHistory = storage.getXPHistory();
-  const habits = storage.getHabits();
-  const streak = storage.getStreak();
+  // Get data from cloud hooks
+  const { stats } = usePlayerStats();
+  const { xpHistory } = useCloudChallenges();
+  const { habits } = useCloudHabits();
+  const { streak } = useCloudStreaks();
 
   const analytics = useMemo(() => {
     const now = new Date();

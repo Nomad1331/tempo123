@@ -1,20 +1,11 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { storage, XPHistoryEntry } from "@/lib/storage";
-import { Trophy, Flame, Skull, Zap, Target, Shield } from "lucide-react";
+import { useCloudChallenges } from "@/hooks/useCloudChallenges";
+import { XPHistoryEntry } from "@/lib/storage";
+import { Trophy, Flame, Skull, Zap, Target, Shield, Loader2 } from "lucide-react";
 
 const XPHistoryPanel = () => {
-  const [history, setHistory] = useState<XPHistoryEntry[]>([]);
-
-  useEffect(() => {
-    // Load history on mount and set up interval to refresh
-    const loadHistory = () => setHistory(storage.getXPHistory());
-    loadHistory();
-    
-    const interval = setInterval(loadHistory, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const { xpHistory, loading } = useCloudChallenges();
 
   const getSourceIcon = (source: XPHistoryEntry["source"]) => {
     switch (source) {
@@ -63,7 +54,16 @@ const XPHistoryPanel = () => {
     return date.toLocaleDateString();
   };
 
-  if (history.length === 0) {
+  if (loading) {
+    return (
+      <Card className="p-8 bg-card border-border text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+        <p className="text-muted-foreground">Loading XP history...</p>
+      </Card>
+    );
+  }
+
+  if (!xpHistory || xpHistory.length === 0) {
     return (
       <Card className="p-8 bg-card border-border text-center">
         <p className="text-muted-foreground">No XP history yet. Complete quests and habits to start tracking!</p>
@@ -76,7 +76,7 @@ const XPHistoryPanel = () => {
       <h3 className="text-xl font-cinzel font-bold mb-4 text-foreground">XP History</h3>
       <ScrollArea className="h-[600px] pr-4">
         <div className="space-y-3">
-          {history.map((entry) => (
+          {xpHistory.map((entry) => (
             <Card
               key={entry.id}
               className={`p-4 bg-card/50 border ${getSourceColor(entry.source)} hover:border-primary/50 transition-all`}

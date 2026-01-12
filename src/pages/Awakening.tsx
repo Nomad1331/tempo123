@@ -16,12 +16,13 @@ import { Plus, Heart, Crown, Loader2, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LevelUpAnimation } from "@/components/LevelUpAnimation";
 import { onLevelUp } from "@/hooks/usePlayerStats";
-import { storage } from "@/lib/storage";
+import { useCloudStreaks } from "@/hooks/useCloudStreaks";
 
 const Awakening = () => {
   const { stats, allocateStat, getTotalPower, getXPForNextLevel, getCurrentLevelXP } = usePlayerStats();
   const { unlockedAchievements } = useAchievements();
   const { user, loading: authLoading } = useAuth();
+  const { streak } = useCloudStreaks();
   const navigate = useNavigate();
   const [levelUpData, setLevelUpData] = useState<{ level: number; points: number } | null>(null);
 
@@ -33,51 +34,24 @@ const Awakening = () => {
   }, []);
   const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [streakData, setStreakData] = useState(storage.getStreak());
-  
-  // Refresh streak data on mount
-  useEffect(() => {
-    setStreakData(storage.getStreak());
-  }, []);
   
   const xpForNextLevel = getXPForNextLevel();
   const currentLevelXP = getCurrentLevelXP();
 
   useEffect(() => {
-    // Check if this is the first time the user is opening the app
-    // Skip first-time setup if user is logged in (cloud sync will handle profile)
-    if (stats.isFirstTime && !authLoading && !user) {
+    // First-time setup only needed if not logged in
+    if (!authLoading && !user && stats.isFirstTime) {
       setShowFirstTimeSetup(true);
-    } else if (user) {
-      // User is logged in, ensure setup is hidden
-      setShowFirstTimeSetup(false);
     }
   }, [stats.isFirstTime, user, authLoading]);
 
   const handleFirstTimeComplete = (name: string, avatar: string, title: string) => {
-    const updatedStats = {
-      ...stats,
-      name,
-      avatar,
-      title,
-      isFirstTime: false,
-      hasSeenTutorial: false, // Mark that tutorial should be shown
-    };
-    storage.setStats(updatedStats);
     setShowFirstTimeSetup(false);
-    setShowTutorial(true); // Show tutorial after setup
+    setShowTutorial(true);
   };
 
   const handleTutorialComplete = () => {
-    // Read fresh stats from storage instead of using stale state
-    const currentStats = storage.getStats();
-    const updatedStats = {
-      ...currentStats,
-      hasSeenTutorial: true,
-    };
-    storage.setStats(updatedStats);
     setShowTutorial(false);
-    // No reload needed - just close the modal
   };
 
   const statsList = [
@@ -164,20 +138,20 @@ if (dataTimeout && !user) {
               
               {/* Streak Counter */}
               <Card className="p-4 bg-card border-orange-500/20 hover:border-orange-500/40 transition-all relative overflow-hidden">
-                {streakData.currentStreak >= 7 && (
+                {streak.currentStreak >= 7 && (
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-red-500/10 animate-pulse" />
                 )}
                 <div className="flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-3">
-                    <Flame className={`w-8 h-8 ${streakData.currentStreak >= 3 ? 'text-orange-400 animate-pulse' : 'text-muted-foreground'}`} />
+                    <Flame className={`w-8 h-8 ${streak.currentStreak >= 3 ? 'text-orange-400 animate-pulse' : 'text-muted-foreground'}`} />
                     <div>
                       <p className="text-sm text-muted-foreground">Current Streak</p>
-                      <p className="text-2xl font-bold text-orange-400">{streakData.currentStreak} Days</p>
+                      <p className="text-2xl font-bold text-orange-400">{streak.currentStreak} Days</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Best</p>
-                    <p className="text-lg font-bold text-secondary">{streakData.longestStreak}</p>
+                    <p className="text-lg font-bold text-secondary">{streak.longestStreak}</p>
                   </div>
                 </div>
               </Card>
