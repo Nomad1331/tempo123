@@ -24,6 +24,17 @@ export const useCloudQuests = () => {
   const lastSaveTime = useRef<number>(0);
   const localUpdatePending = useRef(false);
 
+  // IMPORTANT: keep reset dates timezone-consistent (avoid UTC date loops)
+  const getTodayInTimezone = (timezone?: string) => {
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  };
+
   // Save quests to cloud (defined first to avoid dependency issues)
   const saveQuests = useCallback(async (newQuests: DailyQuest[], resetDate?: string, currentLastResetDate?: string | null) => {
     if (!user) return false;
@@ -31,13 +42,15 @@ export const useCloudQuests = () => {
     try {
       localUpdatePending.current = true;
       lastSaveTime.current = Date.now();
-      
+
+      const resolvedResetDate = resetDate || currentLastResetDate || getTodayInTimezone();
+
       const { error } = await supabase
         .from('user_quests')
         .upsert({
           user_id: user.id,
           quests: newQuests as unknown as Json,
-          last_reset_date: resetDate || currentLastResetDate || new Date().toISOString().split('T')[0],
+          last_reset_date: resolvedResetDate,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
 
@@ -146,27 +159,20 @@ export const useCloudQuests = () => {
   }, [updateQuests]);
 
   // Reset all quests for new day
-  const resetQuests = useCallback(async () => {
-    const today = new Date().toISOString().split('T')[0];
+  const resetQuests = useCallback(async (timezone?: string) => {
+    const today = getTodayInTimezone(timezone);
     const resetQuestsData = quests.map(q => ({ ...q, completed: false }));
     setQuests(resetQuestsData);
     setLastResetDate(today);
     await saveQuests(resetQuestsData, today, today);
   }, [quests, saveQuests]);
 
-  // Check and auto-reset at midnight
+  // Check and auto-reset at midnight (in the user's timezone)
   const checkAutoReset = useCallback(async (timezone: string) => {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', { 
-      timeZone: timezone, 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
-    });
-    const todayInTimezone = formatter.format(now);
-    
+    const todayInTimezone = getTodayInTimezone(timezone);
+
     if (lastResetDate !== todayInTimezone) {
-      await resetQuests();
+      await resetQuests(timezone);
       return true;
     }
     return false;

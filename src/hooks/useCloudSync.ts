@@ -198,28 +198,27 @@ export const useCloudSync = () => {
     // Fetch and sync all other data from cloud
     const allCloudData = await fetchAllCloudData();
     if (allCloudData) {
-      // Sync quests
-      if (allCloudData.quests?.quests) {
+      // Sync quests (cloud is source of truth, even for empty arrays)
+      if (allCloudData.quests && 'quests' in allCloudData.quests) {
         const cloudQuests = parseJsonb<DailyQuest[]>(allCloudData.quests.quests, []);
-        if (cloudQuests.length > 0) {
-          storage.setQuests(cloudQuests);
+        storage.setQuests(cloudQuests);
+
+        // Keep last reset date in sync for any legacy code paths
+        if ('last_reset_date' in allCloudData.quests && allCloudData.quests.last_reset_date) {
+          storage.setLastReset(allCloudData.quests.last_reset_date as string);
         }
       }
 
       // Sync habits
-      if (allCloudData.habits?.habits) {
+      if (allCloudData.habits && 'habits' in allCloudData.habits) {
         const cloudHabits = parseJsonb<Habit[]>(allCloudData.habits.habits, []);
-        if (cloudHabits.length > 0) {
-          storage.setHabits(cloudHabits);
-        }
+        storage.setHabits(cloudHabits);
       }
 
       // Sync gates
-      if (allCloudData.gates?.gates) {
+      if (allCloudData.gates && 'gates' in allCloudData.gates) {
         const cloudGates = parseJsonb<Gate[]>(allCloudData.gates.gates, []);
-        if (cloudGates.length > 0) {
-          storage.setGates(cloudGates);
-        }
+        storage.setGates(cloudGates);
       }
 
       // Sync streaks
@@ -233,33 +232,23 @@ export const useCloudSync = () => {
         storage.setStreak(streakData);
       }
 
-      // Sync challenges and other data
+      // Sync challenges and other data (also sync empty values to prevent stale local fallbacks)
       if (allCloudData.challenges) {
         const challenges = parseJsonb(allCloudData.challenges.challenges, []);
         const necroChallenge = parseJsonb(allCloudData.challenges.necro_challenge, null);
         const claimedChallenges = parseJsonb(allCloudData.challenges.claimed_challenges, {});
         const xpHistory = parseJsonb<XPHistoryEntry[]>(allCloudData.challenges.xp_history, []);
-        const userSettings = parseJsonb<UserSettings>(allCloudData.challenges.user_settings, { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+        const userSettings = parseJsonb<UserSettings>(allCloudData.challenges.user_settings, {
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
         const activeBoost = parseJsonb(allCloudData.challenges.active_boost, null);
 
-        if (challenges.length > 0) {
-          localStorage.setItem("soloLevelingChallenges", JSON.stringify(challenges));
-        }
-        if (necroChallenge) {
-          localStorage.setItem("soloLevelingNecroChallenge", JSON.stringify(necroChallenge));
-        }
-        if (Object.keys(claimedChallenges).length > 0) {
-          localStorage.setItem("soloLevelingClaimedChallenges", JSON.stringify(claimedChallenges));
-        }
-        if (xpHistory.length > 0) {
-          storage.setXPHistory(xpHistory);
-        }
-        if (userSettings) {
-          storage.setSettings(userSettings);
-        }
-        if (activeBoost) {
-          localStorage.setItem("soloLevelingActiveBoost", JSON.stringify(activeBoost));
-        }
+        localStorage.setItem("soloLevelingChallenges", JSON.stringify(challenges));
+        localStorage.setItem("soloLevelingNecroChallenge", JSON.stringify(necroChallenge));
+        localStorage.setItem("soloLevelingClaimedChallenges", JSON.stringify(claimedChallenges));
+        storage.setXPHistory(xpHistory);
+        storage.setSettings(userSettings);
+        localStorage.setItem("soloLevelingActiveBoost", JSON.stringify(activeBoost));
       }
     }
     
@@ -353,63 +342,96 @@ export const useCloudSync = () => {
     }
   };
 
-  // Sync all data to cloud (quests, habits, gates, streaks, challenges)
+  // Sync all data to cloud (ONLY migrate explicit localStorage data; never invent defaults)
   const syncAllDataToCloud = async () => {
     if (!user || syncInProgressRef.current) return false;
 
     syncInProgressRef.current = true;
 
+    const readJson = <T,>(key: string): T | null => {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return null;
+      }
+    };
+
     try {
-      const quests = storage.getQuests();
-      const habits = storage.getHabits();
-      const gates = storage.getGates();
-      const streak = storage.getStreak();
-      const xpHistory = storage.getXPHistory();
-      const userSettings = storage.getSettings();
-      const challenges = JSON.parse(localStorage.getItem("soloLevelingChallenges") || "[]");
-      const necroChallenge = JSON.parse(localStorage.getItem("soloLevelingNecroChallenge") || "null");
-      const claimedChallenges = JSON.parse(localStorage.getItem("soloLevelingClaimedChallenges") || "{}");
-      const activeBoost = JSON.parse(localStorage.getItem("soloLevelingActiveBoost") || "null");
-      const lastReset = storage.getLastReset();
+      // Only sync keys that actually exist in localStorage.
+      // This prevents overwriting cloud data with DEFAULT_* fallbacks.
+      const quests = readJson<DailyQuest[]>("soloLevelingQuests");
+      const habits = readJson<Habit[]>("soloLevelingHabits");
+      const gates = readJson<Gate[]>("soloLevelingGates");
+      const streak = readJson<StreakData>("soloLevelingStreak");
+      const xpHistory = readJson<XPHistoryEntry[]>("soloLevelingXPHistory");
+      const userSettings = readJson<UserSettings>("soloLevelingSettings");
 
-      // Upsert quests
-      await supabase.from('user_quests').upsert({
-        user_id: user.id,
-        quests: quests as unknown as Json,
-        last_reset_date: lastReset || new Date().toISOString().split('T')[0],
-      }, { onConflict: 'user_id' });
+      const challenges = readJson<unknown>("soloLevelingChallenges");
+      const necroChallenge = readJson<unknown>("soloLevelingNecroChallenge");
+      const claimedChallenges = readJson<Record<string, unknown>>("soloLevelingClaimedChallenges");
+      const activeBoost = readJson<unknown>("soloLevelingActiveBoost");
 
-      // Upsert habits
-      await supabase.from('user_habits').upsert({
-        user_id: user.id,
-        habits: habits as unknown as Json,
-      }, { onConflict: 'user_id' });
+      const lastReset = localStorage.getItem("soloLevelingLastReset");
 
-      // Upsert gates
-      await supabase.from('user_gates').upsert({
-        user_id: user.id,
-        gates: gates as unknown as Json,
-      }, { onConflict: 'user_id' });
+      if (quests !== null) {
+        const questPayload: Record<string, unknown> = {
+          user_id: user.id,
+          quests: quests as unknown as Json,
+        };
+        if (lastReset) questPayload.last_reset_date = lastReset;
 
-      // Upsert streaks
-      await supabase.from('user_streaks').upsert({
-        user_id: user.id,
-        current_streak: streak.currentStreak,
-        longest_streak: streak.longestStreak,
-        last_completion_date: streak.lastCompletionDate,
-        total_rewards: streak.totalRewards,
-      }, { onConflict: 'user_id' });
+        await supabase.from('user_quests').upsert(questPayload, { onConflict: 'user_id' });
+      }
 
-      // Upsert challenges
-      await supabase.from('user_challenges').upsert({
-        user_id: user.id,
-        challenges: challenges as unknown as Json,
-        necro_challenge: necroChallenge as unknown as Json,
-        claimed_challenges: claimedChallenges as unknown as Json,
-        xp_history: xpHistory as unknown as Json,
-        user_settings: userSettings as unknown as Json,
-        active_boost: activeBoost as unknown as Json,
-      }, { onConflict: 'user_id' });
+      if (habits !== null) {
+        await supabase.from('user_habits').upsert({
+          user_id: user.id,
+          habits: habits as unknown as Json,
+        }, { onConflict: 'user_id' });
+      }
+
+      if (gates !== null) {
+        await supabase.from('user_gates').upsert({
+          user_id: user.id,
+          gates: gates as unknown as Json,
+        }, { onConflict: 'user_id' });
+      }
+
+      if (streak !== null) {
+        await supabase.from('user_streaks').upsert({
+          user_id: user.id,
+          current_streak: streak.currentStreak,
+          longest_streak: streak.longestStreak,
+          last_completion_date: streak.lastCompletionDate,
+          total_rewards: streak.totalRewards,
+        }, { onConflict: 'user_id' });
+      }
+
+      // Challenges: update existing row only, and only for keys present.
+      const challengesPayload: Record<string, unknown> = {};
+      if (challenges !== null) challengesPayload.challenges = challenges as Json;
+      if (necroChallenge !== null) challengesPayload.necro_challenge = necroChallenge as Json;
+      if (claimedChallenges !== null) challengesPayload.claimed_challenges = claimedChallenges as unknown as Json;
+      if (xpHistory !== null) challengesPayload.xp_history = xpHistory as unknown as Json;
+      if (userSettings !== null) challengesPayload.user_settings = userSettings as unknown as Json;
+      if (activeBoost !== null) challengesPayload.active_boost = activeBoost as Json;
+
+      if (Object.keys(challengesPayload).length > 0) {
+        const { data: existing, error: existingErr } = await supabase
+          .from('user_challenges')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!existingErr && existing) {
+          await supabase
+            .from('user_challenges')
+            .update(challengesPayload)
+            .eq('user_id', user.id);
+        }
+      }
 
       setLastSyncTime(new Date());
       syncInProgressRef.current = false;
