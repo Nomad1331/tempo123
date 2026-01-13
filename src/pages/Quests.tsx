@@ -35,7 +35,7 @@ import { SortableQuestCard } from "@/components/SortableQuestCard";
 
 const Quests = () => {
   const { user } = useAuth();
-  const { quests, loading, updateQuests, completeQuest: cloudCompleteQuest, addQuest, editQuest, deleteQuest: cloudDeleteQuest, reorderQuests, checkAutoReset } = useCloudQuests();
+  const { quests, loading, initialized, error, completeQuest: cloudCompleteQuest, addQuest, editQuest, deleteQuest: cloudDeleteQuest, reorderQuests, checkAutoReset } = useCloudQuests();
   const { streak, checkStreakUpdate } = useCloudStreaks();
   const { userSettings } = useCloudChallenges();
   
@@ -67,7 +67,7 @@ const Quests = () => {
 
   // Auto-reset quests at midnight
   useEffect(() => {
-    if (!user || loading) return;
+    if (!user || loading || !initialized || !!error) return;
     
     const timezone = userSettings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     
@@ -86,7 +86,7 @@ const Quests = () => {
     // Check every minute
     const interval = setInterval(checkReset, 60000);
     return () => clearInterval(interval);
-  }, [user, loading, checkAutoReset, userSettings]);
+  }, [user, loading, initialized, error, checkAutoReset, userSettings]);
 
   // Check streak when all quests complete
   useEffect(() => {

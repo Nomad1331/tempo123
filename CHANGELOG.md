@@ -2,6 +2,16 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.5] - 2026-01-13
+
+### Fixed - CRITICAL
+- **Quests disappearing across all windows**: a transient cloud fetch failure (or an offline/backgrounded tab) could leave quests state empty, and the midnight auto-reset loop could then persist that empty list to `user_quests`, wiping quests for every session. Saves are now blocked until quests successfully initialize from cloud, and empty-array writes require an explicit allow flag.
+
+### Technical
+- `useCloudQuests.saveQuests()` now blocks pre-init writes and accidental empty-list overwrites.
+- `useCloudQuests.checkAutoReset()` now no-ops until initialization is complete.
+- New-user initialization uses timezone-consistent `YYYY-MM-DD` dates.
+
 ## [3.13.4] - 2026-01-12
 
 ### Fixed - CRITICAL
