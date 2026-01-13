@@ -528,6 +528,13 @@ export const usePlayerStats = () => {
 
   const getCurrentStats = useCallback(() => stats, [stats]);
 
+  // Update profile (name, avatar, title, card frame) to cloud
+  const updateProfile = useCallback(async (updates: Partial<Pick<PlayerStats, 'name' | 'avatar' | 'title' | 'selectedCardFrame'>>) => {
+    const newStats = { ...stats, ...updates };
+    setStats(newStats);
+    await saveStats(newStats);
+  }, [stats, saveStats]);
+
   return {
     stats,
     loading,
@@ -550,5 +557,6 @@ export const usePlayerStats = () => {
     getActiveBoostMultiplier,
     getCurrentStats,
     fetchStats,
+    updateProfile,
   };
 };

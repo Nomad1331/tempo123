@@ -55,6 +55,19 @@ const Customize = () => {
     setHasMounted(true);
   }, []);
 
+  // Sync state when stats change from cloud
+  useEffect(() => {
+    if (stats) {
+      setSelectedAvatar(stats.avatar || "default");
+      setSelectedTitle(stats.title || "Awakened Hunter");
+      setCustomName(stats.name);
+      setSelectedCardFrame(stats.selectedCardFrame || "default");
+      if (stats.avatar && !AVATAR_OPTIONS.find(a => a.id === stats.avatar)) {
+        setCustomImagePreview(stats.avatar);
+      }
+    }
+  }, [stats.avatar, stats.title, stats.name, stats.selectedCardFrame]);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,77 +109,15 @@ const Customize = () => {
     }
   };
 
-  // Export data handler
-  const handleExportData = () => {
-    try {
-      const data = storage.exportAllData();
-      const blob = new Blob([data], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `solo-leveling-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "📦 Data Exported",
-        description: "Your progress has been saved to a file",
-      });
-    } catch (error) {
-      toast({
-        title: "❌ Export Failed",
-        description: "Failed to export data",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Import data handler
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      const result = storage.importAllData(content);
-      
-      if (result.success) {
-        toast({
-          title: "✅ Data Imported",
-          description: "Your progress has been restored. Refreshing...",
-        });
-        // Refresh the page to load new data
-        setTimeout(() => window.location.reload(), 1000);
-      } else {
-        toast({
-          title: "❌ Import Failed",
-          description: result.error || "Invalid file format",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsText(file);
-    
-    // Reset the input
-    if (importInputRef.current) {
-      importInputRef.current.value = "";
-    }
-  };
-
-  // Auto-save with debounce
+  // Auto-save with debounce - save to cloud
   const saveCustomization = useCallback(() => {
-    const updatedStats = {
-      ...stats,
+    updateProfile({
       name: customName,
       avatar: selectedAvatar,
       title: selectedTitle,
       selectedCardFrame: selectedCardFrame,
-    };
-    storage.setStats(updatedStats);
-  }, [stats, customName, selectedAvatar, selectedTitle, selectedCardFrame]);
+    });
+  }, [customName, selectedAvatar, selectedTitle, selectedCardFrame, updateProfile]);
 
   // Auto-save whenever any customization changes - only after mount
   useEffect(() => {
@@ -174,7 +125,7 @@ const Customize = () => {
     
     const timeoutId = setTimeout(() => {
       saveCustomization();
-    }, 300); // 300ms debounce
+    }, 500); // 500ms debounce
 
     return () => clearTimeout(timeoutId);
   }, [saveCustomization, hasMounted]);
@@ -408,65 +359,29 @@ const Customize = () => {
           </div>
         </Card>
 
-        {/* Data Management */}
+        {/* Info Card */}
         <Card className="p-6 bg-card border-primary/30 lg:col-span-2">
-          <h2 className="text-2xl font-bold text-primary mb-4 font-cinzel">Data Management</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Export your progress to a file for backup, or import from a previous backup.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <Button
-              onClick={handleExportData}
-              variant="outline"
-              className="gap-2 border-primary/50 hover:bg-primary/10"
-            >
-              <Download className="w-4 h-4" />
-              Export All Data
-            </Button>
-            <Button
-              onClick={() => importInputRef.current?.click()}
-              variant="outline"
-              className="gap-2 border-secondary/50 hover:bg-secondary/10"
-            >
-              <FileUp className="w-4 h-4" />
-              Import Data
-            </Button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImportData}
-              className="hidden"
-            />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-primary/10">
+              <BookOpen className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground mb-2">Cloud Sync</h3>
+              <p className="text-sm text-muted-foreground">
+                Your profile is automatically saved to the cloud. Sign in on any device to access your progress.
+              </p>
+              <Button
+                onClick={() => setShowTutorial(true)}
+                variant="link"
+                className="px-0 text-primary"
+              >
+                View Tutorial
+              </Button>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            ⚠️ Importing will overwrite all current data. Make sure to export first if needed.
-          </p>
         </Card>
-
-        {/* Help & Tutorial */}
-        <Card className="p-6 bg-card border-primary/30 lg:col-span-2">
-          <h2 className="text-2xl font-bold text-primary mb-4 font-cinzel">Help & Tutorial</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            New to the System? Review the tutorial to learn about quests, habits, gates, and more.
-          </p>
-          <Button
-            onClick={() => setShowTutorial(true)}
-            variant="outline"
-            className="gap-2 border-primary/50 hover:bg-primary/10"
-          >
-            <BookOpen className="w-4 h-4" />
-            View Tutorial
-          </Button>
-        </Card>
-
-        {/* Auto-save indicator */}
-        <div className="lg:col-span-2 flex justify-center">
-          <p className="text-sm text-muted-foreground italic">Changes are saved automatically</p>
-        </div>
       </div>
 
-      {/* Tutorial Modal */}
       <TutorialModal open={showTutorial} onComplete={() => setShowTutorial(false)} />
     </div>
   );

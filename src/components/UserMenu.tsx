@@ -14,14 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { HunterAvatar } from '@/components/HunterAvatar';
 import { NotificationCenter } from '@/components/NotificationCenter';
-import { User, LogOut, Globe, Lock, Cloud, CloudOff, KeyRound } from 'lucide-react';
+import { User, LogOut, Globe, Lock, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const UserMenu = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { cloudProfile, setProfilePublic, migrateLocalToCloud, syncing } = useCloudSync();
+  const { cloudProfile, setProfilePublic } = useCloudSync();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -33,13 +33,6 @@ export const UserMenu = () => {
       description: "You have been logged out of the system.",
     });
     navigate('/');
-  };
-
-  const handleMigrateData = async () => {
-    const success = await migrateLocalToCloud();
-    if (success) {
-      setIsOpen(false);
-    }
   };
 
   if (!user) {
@@ -101,16 +94,6 @@ export const UserMenu = () => {
           </div>
 
           <DropdownMenuSeparator />
-
-          {/* Sync Data */}
-          <DropdownMenuItem onClick={handleMigrateData} disabled={syncing}>
-            {syncing ? (
-              <CloudOff className="h-4 w-4 mr-2 animate-pulse" />
-            ) : (
-              <Cloud className="h-4 w-4 mr-2" />
-            )}
-            {syncing ? 'Syncing...' : 'Sync Local Progress'}
-          </DropdownMenuItem>
 
           {/* Change Password */}
           <DropdownMenuItem onClick={() => { setPasswordModalOpen(true); setIsOpen(false); }}>
