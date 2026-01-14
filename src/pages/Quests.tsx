@@ -91,31 +91,33 @@ const Quests = () => {
   // Check streak when all quests complete
   useEffect(() => {
     if (!user || loading || quests.length === 0) return;
-    
+
     const allComplete = quests.every(q => q.completed);
-    if (allComplete) {
-      checkStreakUpdate(true).then((result) => {
-        if (result) {
-          const { newStreakCount, streakReward, isNewRecord } = result;
-          if (streakReward > 0) {
-            addXP(streakReward, { type: "streak", description: `${newStreakCount} day streak bonus` });
-            toast({
-              title: "🔥 STREAK BONUS!",
-              description: `${newStreakCount} day streak! Earned ${streakReward} bonus XP!`,
-              duration: 4000,
-            });
-          }
-          if (isNewRecord && newStreakCount > 1) {
-            toast({
-              title: "🏆 NEW RECORD!",
-              description: `New longest streak: ${newStreakCount} days!`,
-              duration: 3000,
-            });
-          }
+    if (!allComplete) return;
+
+    const timezone = userSettings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    checkStreakUpdate(true, timezone).then((result) => {
+      if (result) {
+        const { newStreakCount, streakReward, isNewRecord } = result;
+        if (streakReward > 0) {
+          addXP(streakReward, { type: "streak", description: `${newStreakCount} day streak bonus` });
+          toast({
+            title: "🔥 STREAK BONUS!",
+            description: `${newStreakCount} day streak! Earned ${streakReward} bonus XP!`,
+            duration: 4000,
+          });
         }
-      });
-    }
-  }, [quests, user, loading]);
+        if (isNewRecord && newStreakCount > 1) {
+          toast({
+            title: "🏆 NEW RECORD!",
+            description: `New longest streak: ${newStreakCount} days!`,
+            duration: 3000,
+          });
+        }
+      }
+    });
+  }, [quests, user, loading, checkStreakUpdate, userSettings]);
 
   const analyzeQuestDescription = async (description: string) => {
     setIsAnalyzing(true);

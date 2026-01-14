@@ -155,36 +155,47 @@ export const ChallengesPanel = () => {
 
   // Update Necromancer challenge progress
   useEffect(() => {
-    if (isNecromancerUnlocked || localNecroChallenge.status === "pending") return;
-    
+    // Never evaluate (or penalize) until the streak is fully hydrated from cloud.
+    // This prevents false "streak dropped" detections in secondary/background tabs.
+    if (isNecromancerUnlocked || !streakInitialized || localNecroChallenge.status === "pending") return;
+
+    const timezone = userSettings?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const formatDate = (date: Date) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(date);
+
+    const todayStr = formatDate(new Date());
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = formatDate(yesterdayDate);
+
     const currentStreak = streak.currentStreak;
     const lastCompletionDate = streak.lastCompletionDate;
-    
-    // Get today's date and yesterday's date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    // Parse last completion date
-    let lastCompletion: Date | null = null;
-    if (lastCompletionDate) {
-      lastCompletion = new Date(lastCompletionDate);
-      lastCompletion.setHours(0, 0, 0, 0);
-    }
-    
-    // Detect streak failure
-    const hadProgress = localNecroChallenge.requirement.current > 0 && localNecroChallenge.status === "active";
-    const streakDropped = currentStreak < localNecroChallenge.requirement.current;
-    
-    let missedDay = false;
-    if (hadProgress && lastCompletion) {
-      const daysSinceLastCompletion = Math.floor((today.getTime() - lastCompletion.getTime()) / (1000 * 60 * 60 * 24));
-      missedDay = daysSinceLastCompletion > 1;
-    }
-    
-    const streakBroken = hadProgress && (streakDropped || missedDay);
-    
+
+    const hadProgress =
+      localNecroChallenge.status === "active" &&
+      localNecroChallenge.requirement.current > 0;
+
+    // A streak is considered broken if:
+    // - The streak counter dropped below our recorded challenge progress (covers: miss a day → complete again → streak resets to 1)
+    // - OR the last completion wasn't today/yesterday in the user's timezone
+    const streakDropped = hadProgress && currentStreak < localNecroChallenge.requirement.current;
+
+    const missedDay =
+      hadProgress &&
+      !!lastCompletionDate &&
+      lastCompletionDate !== todayStr &&
+      lastCompletionDate !== yesterdayStr;
+
+    // Safety: if we somehow have progress but no lastCompletionDate, don't punish — wait for data to reconcile.
+    const streakBroken =
+      localNecroChallenge.status === "active" &&
+      (missedDay || (streakDropped && !!lastCompletionDate));
+
     if (streakBroken) {
       if (localNecroChallenge.mode === "hard") {
         applyNecromancerHardPenalty();
@@ -203,7 +214,7 @@ export const ChallengesPanel = () => {
           duration: 8000,
         });
       }
-      
+
       const resetNecro = {
         ...NECROMANCER_CHALLENGE,
         status: "pending" as const,
@@ -214,18 +225,30 @@ export const ChallengesPanel = () => {
       updateNecroChallenge(resetNecro);
       return;
     }
-    
+
     const isCompleted = currentStreak >= localNecroChallenge.requirement.target;
-    if (currentStreak !== localNecroChallenge.requirement.current || (isCompleted && localNecroChallenge.status !== "completed")) {
+    if (
+      currentStreak !== localNecroChallenge.requirement.current ||
+      (isCompleted && localNecroChallenge.status !== "completed")
+    ) {
       const updated = {
         ...localNecroChallenge,
         requirement: { ...localNecroChallenge.requirement, current: currentStreak },
-        status: isCompleted ? "completed" as const : "active" as const,
+        status: isCompleted ? ("completed" as const) : ("active" as const),
       };
       setLocalNecroChallenge(updated);
       updateNecroChallenge(updated);
     }
-  }, [streak, isNecromancerUnlocked, localNecroChallenge.status]);
+  }, [
+    streak,
+    streakInitialized,
+    userSettings,
+    isNecromancerUnlocked,
+    localNecroChallenge,
+    applyNecromancerHardPenalty,
+    applyNecromancerNormalPenalty,
+    updateNecroChallenge,
+  ]);
 
   const handleAcceptChallenge = () => {
     playClick();

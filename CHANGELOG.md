@@ -2,17 +2,19 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
-## [3.13.5] - 2026-01-13
+## [3.13.6] - 2026-01-14
 
 ### Fixed - CRITICAL
-- **Quests disappearing across all windows**: a transient cloud fetch failure (or an offline/backgrounded tab) could leave quests state empty, and the midnight auto-reset loop could then persist that empty list to `user_quests`, wiping quests for every session. Saves are now blocked until quests successfully initialize from cloud, and empty-array writes require an explicit allow flag.
+- **False Necromancer hard-mode resets in secondary tabs**: the Necromancer challenge could evaluate failure before the streak finished hydrating (defaulting to 0) and with UTC date math, causing a bogus "contract broken" reset toast and (sometimes) a racey stat reset attempt.
+
+### Fixed
+- **Discord bot `bot.py` indentation error** near the `/card` command.
 
 ### Technical
-- `useCloudQuests.saveQuests()` now blocks pre-init writes and accidental empty-list overwrites.
-- `useCloudQuests.checkAutoReset()` now no-ops until initialization is complete.
-- New-user initialization uses timezone-consistent `YYYY-MM-DD` dates.
+- `useCloudStreaks.checkStreakUpdate()` now accepts an optional timezone and stores `YYYY-MM-DD` in that timezone.
+- `ChallengesPanel` now waits for `useCloudStreaks.initialized` and uses timezone date strings for Necromancer failure checks.
 
-## [3.13.4] - 2026-01-12
+## [3.13.5] - 2026-01-13
 
 ### Fixed - CRITICAL
 - **Quests randomly disappearing / resetting to defaults**: `syncAllDataToCloud()` was reading `storage.getQuests()` which returns DEFAULT_QUESTS when localStorage is empty—this would **overwrite real cloud quests with defaults** on login/sync. Now we only push data when localStorage explicitly contains it.

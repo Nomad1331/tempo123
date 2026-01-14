@@ -3951,19 +3951,7 @@ async def card_slash(interaction: discord.Interaction):
     embed.set_footer(text="\"I am a Hunter chosen by The System\" | Use /xp for Discord-based rank card")
     
     await interaction.followup.send(embed=embed)
-            
-            # Clean up temp file
-            try:
-                os.remove(card_path)
-            except:
-                pass
-        else:
-            # Fallback to text-only if image generation fails
-            await _send_text_card(interaction, result)
-    except Exception as e:
-        print(f"Error generating card image: {e}")
-        # Fallback to text-only
-        await _send_text_card(interaction, result)
+
 
 async def _send_text_card(interaction: discord.Interaction, result: dict):
     """Fallback text-based card when image generation fails."""

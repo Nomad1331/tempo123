@@ -100,21 +100,21 @@ export const useCloudStreaks = () => {
   }, [saveStreak]);
 
   // Check and update streak when all quests complete
-  const checkStreakUpdate = useCallback(async (allQuestsComplete: boolean) => {
+  const checkStreakUpdate = useCallback(async (allQuestsComplete: boolean, timezone?: string) => {
     if (!allQuestsComplete) return null;
 
-    const today = new Date().toISOString().split('T')[0];
-    
+    const today = formatDateInTimezone(new Date(), timezone);
+
     if (streak.lastCompletionDate === today) {
       return null; // Already updated today
     }
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = formatDateInTimezone(yesterdayDate, timezone);
 
-    const newStreakCount = streak.lastCompletionDate === yesterdayStr 
-      ? streak.currentStreak + 1 
+    const newStreakCount = streak.lastCompletionDate === yesterdayStr
+      ? streak.currentStreak + 1
       : 1;
 
     const streakReward = Math.floor(newStreakCount / 7) * 100;
