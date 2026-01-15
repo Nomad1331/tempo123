@@ -2,6 +2,19 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.9] - 2026-01-15
+
+### Fixed - CRITICAL
+- **Bot XP Calculation Mismatch**: Fixed XP formula in Discord bot to match web app. Was using `sum(l * 100 for l in range(1, level + 1))` but should be `100 * (level - 1) * level // 2`. Your rank card now shows correct XP progress!
+
+### Added
+- **Discord Server Invite Popup**: New users see a Discord invite popup after completing the tutorial. Existing users see it once on their next visit. Join link: https://discord.gg/8geBVTC4
+- **Tutorial Auto-Open for New Signups**: Tutorial modal now properly opens for authenticated users who haven't seen it yet
+- **Discord Auto-Post API**: Added `post_level_up` and `post_achievement` actions to bot-sync edge function for auto-posting to Discord channel
+
+### Fixed
+- **Tutorial Not Showing**: Fixed tutorial not auto-opening for new cloud users after signup
+
 ## [3.13.8] - 2026-01-15
 
 ### Added

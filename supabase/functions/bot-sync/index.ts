@@ -8,6 +8,10 @@ const corsHeaders = {
 
 // Bot secret for authentication (set this in Supabase Edge Function secrets)
 const BOT_SECRET = Deno.env.get('BOT_SYNC_SECRET');
+const DISCORD_WEBHOOK_URL = Deno.env.get('DISCORD_WEBHOOK_URL'); // For auto-posting
+
+// Discord channel ID for level-up announcements
+const LEVEL_UP_CHANNEL_ID = "1461077959413731491";
 
 interface BotSyncRequest {
   discord_id: string;
@@ -25,7 +29,9 @@ interface BotSyncRequest {
     | 'get_streak'
     | 'get_gates'
     | 'get_challenges'
-    | 'get_card_data';
+    | 'get_card_data'
+    | 'post_level_up'
+    | 'post_achievement';
   data?: {
     xp?: number;
     source?: string;
@@ -41,6 +47,13 @@ interface BotSyncRequest {
       vitality?: number;
       sense?: number;
     };
+    // For Discord posting
+    old_level?: number;
+    new_level?: number;
+    old_rank?: string;
+    new_rank?: string;
+    achievement_name?: string;
+    achievement_description?: string;
   };
 }
 
@@ -850,6 +863,33 @@ serve(async (req) => {
           gems: playerStats.gems,
           credits: playerStats.credits,
           selected_frame: playerStats.selected_card_frame || 'default',
+        };
+        break;
+      }
+
+      case 'post_level_up': {
+        // Post level-up to Discord channel via webhook (bot will handle actual posting)
+        result = {
+          success: true,
+          channel_id: LEVEL_UP_CHANNEL_ID,
+          hunter_name: profile.hunter_name,
+          old_level: data?.old_level || playerStats.level - 1,
+          new_level: data?.new_level || playerStats.level,
+          old_rank: data?.old_rank,
+          new_rank: data?.new_rank || playerStats.rank,
+          message: `🎉 **${profile.hunter_name}** leveled up to **Level ${data?.new_level || playerStats.level}**!`
+        };
+        break;
+      }
+
+      case 'post_achievement': {
+        result = {
+          success: true,
+          channel_id: LEVEL_UP_CHANNEL_ID,
+          hunter_name: profile.hunter_name,
+          achievement_name: data?.achievement_name,
+          achievement_description: data?.achievement_description,
+          message: `🏆 **${profile.hunter_name}** unlocked achievement: **${data?.achievement_name}**!`
         };
         break;
       }

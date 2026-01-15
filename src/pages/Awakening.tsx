@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import XPHistoryPanel from "@/components/XPHistoryPanel";
 import { FirstTimeSetup } from "@/components/FirstTimeSetup";
 import { TutorialModal } from "@/components/TutorialModal";
+import { DiscordInviteModal } from "@/components/DiscordInviteModal";
 import { ShareableStatsCard } from "@/components/ShareableStatsCard";
 import { AchievementsShowcaseCard } from "@/components/AchievementsShowcaseCard";
 import { Plus, Heart, Crown, Loader2, Flame } from "lucide-react";
@@ -17,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { LevelUpAnimation } from "@/components/LevelUpAnimation";
 import { onLevelUp } from "@/hooks/usePlayerStats";
 import { useCloudStreaks } from "@/hooks/useCloudStreaks";
+
+const TUTORIAL_SEEN_KEY = "solo-leveling-tutorial-seen";
 
 const Awakening = () => {
   const { stats, allocateStat, getTotalPower, getXPForNextLevel, getCurrentLevelXP } = usePlayerStats();
@@ -34,14 +37,28 @@ const Awakening = () => {
   }, []);
   const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showDiscordInvite, setShowDiscordInvite] = useState(false);
   
   const xpForNextLevel = getXPForNextLevel();
   const currentLevelXP = getCurrentLevelXP();
 
   useEffect(() => {
-    // First-time setup only needed if not logged in
+    // First-time setup only needed if not logged in (legacy non-cloud users)
     if (!authLoading && !user && stats.isFirstTime) {
       setShowFirstTimeSetup(true);
+      return;
+    }
+    
+    // For logged in users, check if tutorial has been seen
+    if (!authLoading && user) {
+      const tutorialSeen = localStorage.getItem(TUTORIAL_SEEN_KEY);
+      if (!tutorialSeen) {
+        // Show tutorial for new users (or users who haven't seen it)
+        const timer = setTimeout(() => {
+          setShowTutorial(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [stats.isFirstTime, user, authLoading]);
 
@@ -52,6 +69,9 @@ const Awakening = () => {
 
   const handleTutorialComplete = () => {
     setShowTutorial(false);
+    localStorage.setItem(TUTORIAL_SEEN_KEY, "true");
+    // Show Discord invite after tutorial completes
+    setTimeout(() => setShowDiscordInvite(true), 500);
   };
 
   const statsList = [
@@ -150,8 +170,14 @@ const Awakening = () => {
       {/* Show first-time setup if needed */}
       <FirstTimeSetup open={showFirstTimeSetup} onComplete={handleFirstTimeComplete} />
       
-      {/* Show tutorial after first-time setup */}
+      {/* Show tutorial after first-time setup or for new users */}
       <TutorialModal open={showTutorial} onComplete={handleTutorialComplete} />
+      
+      {/* Show Discord invite after tutorial or for returning users who haven't seen it */}
+      <DiscordInviteModal 
+        forceShow={showDiscordInvite} 
+        onClose={() => setShowDiscordInvite(false)} 
+      />
 
       <Tabs defaultValue="status" className="w-full">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
