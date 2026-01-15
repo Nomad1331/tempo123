@@ -1043,19 +1043,20 @@ async def stats(ctx, member: discord.Member = None):
     server_rank = db.get_rank(member.id, ctx.guild.id)
     weekly_xp = db.get_user_weekly_xp(member.id, ctx.guild.id, days=7)
 
-    # Calculate XP progress (web app formula: level * 100)
-    if level == 0:
+    # Calculate XP progress using CORRECT web app formula
+    if level <= 1:
         current_level_xp = total_xp
         next_level_xp = 100
     else:
-        # Total XP needed to reach current level
-        xp_at_current_level = sum(l * 100 for l in range(1, level + 1))
-        # XP needed for next level
-        next_level_xp = (level + 1) * 100
+        # Total XP needed to reach current level (CORRECT formula)
+        xp_to_reach_current_level = 100 * (level - 1) * level // 2
+        
+        # XP needed for this level = level * 100
+        next_level_xp = level * 100
+        
         # XP progress within current level
-        current_level_xp = total_xp - xp_at_current_level
-
-        # Safety check: if somehow negative, reset to 0
+        current_level_xp = total_xp - xp_to_reach_current_level
+        
         if current_level_xp < 0:
             current_level_xp = 0
 
@@ -2298,25 +2299,28 @@ async def xp(ctx, member: discord.Member = None):
         level = web_user['level']
         rank_str = web_user['rank']
 
-        # Calculate XP progress (web app formula: level * 100)
+        # Calculate XP progress using CORRECT web app formula
+        # Web app: calculateTotalXPForLevel(level) = 100 * (level - 1) * level / 2
+        # XP needed for next level = level * 100
         if level <= 1:
-            # Level 0-1: Simple case
             current_level_xp = total_xp
-            next_level_xp = 100 if level == 0 else 200
+            next_level_xp = 100
         else:
-            # Calculate total XP needed to reach current level
-            # Formula: 100 + 200 + 300 + ... + (level * 100)
-            xp_at_current_level = sum(l * 100 for l in range(1, level + 1))
-
-            # XP needed for next level
-            next_level_xp = (level + 1) * 100
-
+            # Total XP needed to reach current level (CORRECT formula)
+            xp_to_reach_current_level = 100 * (level - 1) * level // 2
+            
+            # XP needed to reach NEXT level
+            xp_to_reach_next_level = 100 * level * (level + 1) // 2
+            
+            # XP needed for this level = difference
+            next_level_xp = xp_to_reach_next_level - xp_to_reach_current_level  # = level * 100
+            
             # XP progress within current level
-            current_level_xp = total_xp - xp_at_current_level
-
-            # Safety check: if negative, something's wrong - reset to 0
+            current_level_xp = total_xp - xp_to_reach_current_level
+            
+            # Safety check
             if current_level_xp < 0:
-                print(f"Warning: Negative XP for level {level}, total_xp={total_xp}, xp_at_level={xp_at_current_level}")
+                print(f"Warning: Negative XP for level {level}, total_xp={total_xp}, xp_to_reach={xp_to_reach_current_level}")
                 current_level_xp = 0
         
         try:
@@ -2365,17 +2369,22 @@ async def xp(ctx, member: discord.Member = None):
         rank_str = rank_from_level(level)
         server_rank = db.get_rank(member.id, ctx.guild.id)
 
-        # Calculate XP progress (web app formula: level * 100)
+        # Calculate XP progress using CORRECT web app formula
         if level <= 1:
             current_level_xp = total_xp
-            next_level_xp = 100 if level == 0 else 200
+            next_level_xp = 100
         else:
-            xp_at_current_level = sum(l * 100 for l in range(1, level + 1))
-            next_level_xp = (level + 1) * 100
-            current_level_xp = total_xp - xp_at_current_level
-
+            # Total XP needed to reach current level (CORRECT formula)
+            xp_to_reach_current_level = 100 * (level - 1) * level // 2
+            
+            # XP needed for this level = level * 100
+            next_level_xp = level * 100
+            
+            # XP progress within current level
+            current_level_xp = total_xp - xp_to_reach_current_level
+            
             if current_level_xp < 0:
-                print(f"Warning: Negative XP for level {level}, total_xp={total_xp}, xp_at_level={xp_at_current_level}")
+                print(f"Warning: Negative XP for level {level}, total_xp={total_xp}, xp_to_reach={xp_to_reach_current_level}")
                 current_level_xp = 0
     
         try:
