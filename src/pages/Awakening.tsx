@@ -62,49 +62,79 @@ const Awakening = () => {
     { name: "Sense", key: "sense" as const, value: stats.sense, color: "text-purple-400" },
   ];
 
-  // Show loading spinner while auth state is being determined
-  const [dataTimeout, setDataTimeout] = useState(false);
-
-useEffect(() => {
-  // Set a 10-second timeout
-  const timer = setTimeout(() => {
-    if (authLoading) {
-      console.error('Data authLoading timeout - forcing render');
-      setDataTimeout(true);
-    }
-  }, 10000);
-
-  return () => clearTimeout(timer);
-}, [authLoading]);
-
-if ((authLoading || !user) && !dataTimeout) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-cyan-400">Loading your hunter data...</p>
-        <p className="text-xs text-slate-500 mt-2">This is taking longer than usual...</p>
+  // Show loading spinner only while checking auth - NOT while waiting for user
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-primary">Loading...</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// If timeout reached but still no data, show error
-if (dataTimeout && !user) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <p className="text-red-400">⚠️ Failed to load hunter data</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded"
-        >
-          Retry
-        </button>
+  // If not logged in, show welcome/landing page instead of infinite loading
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center space-y-8 max-w-2xl">
+          {/* Background effects */}
+          <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
+          </div>
+          
+          <div className="relative z-10 space-y-6">
+            <h1 className="text-4xl md:text-6xl font-bold font-cinzel bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              SOLO LEVELING SYSTEM
+            </h1>
+            
+            <p className="text-xl text-muted-foreground">
+              Track your real-life quests, build habits, and level up as a Hunter
+            </p>
+            
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto py-6">
+              <div className="p-4 bg-card border border-primary/20 rounded-lg">
+                <p className="text-3xl font-bold text-primary">⚔️</p>
+                <p className="text-sm text-muted-foreground mt-2">Quests</p>
+              </div>
+              <div className="p-4 bg-card border border-secondary/20 rounded-lg">
+                <p className="text-3xl font-bold text-secondary">🔥</p>
+                <p className="text-sm text-muted-foreground mt-2">Habits</p>
+              </div>
+              <div className="p-4 bg-card border border-neon-orange/20 rounded-lg">
+                <p className="text-3xl font-bold text-neon-orange">🚪</p>
+                <p className="text-sm text-muted-foreground mt-2">Gates</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                onClick={() => navigate('/auth')}
+                className="gap-2"
+              >
+                Begin Your Awakening
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate('/faq')}
+                className="border-primary/50 hover:bg-primary/10"
+              >
+                Learn More
+              </Button>
+            </div>
+            
+            <p className="text-sm text-muted-foreground pt-4">
+              The System awaits your awakening, Hunter.
+            </p>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24">

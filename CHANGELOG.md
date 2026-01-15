@@ -2,6 +2,17 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.13.8] - 2026-01-15
+
+### Added
+- **Discord Account Linking UI**: Users who signed up with email can now link their Discord account via the avatar dropdown menu (User Menu → Link Discord). No more manual Supabase updates needed!
+- **Landing Page for Non-Authenticated Users**: Non-signed-in users now see a beautiful welcome/landing page instead of an infinite loading spinner. Shows app features and clear CTA to sign in.
+- **DISCORD.md Server Guide**: Comprehensive Discord server setup guide with channel recommendations, role hierarchy, onboarding setup, bot integration, and moderation guidelines.
+
+### Fixed
+- **Infinite Loading Issue**: The home page no longer shows infinite "Loading your hunter data..." for unauthenticated users
+- **Better Auth State Handling**: Properly distinguishes between "checking auth" (loading) and "no user logged in" (show landing)
+
 ## [3.13.7] - 2026-01-14
 
 ### Fixed - CRITICAL
