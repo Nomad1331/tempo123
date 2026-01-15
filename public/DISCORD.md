@@ -374,3 +374,8 @@ Every week, compete for the **Season Champion** role!
 ---
 
 *Last updated: January 15, 2026*
+
+âš"ï¸ Track your self-improvement journey RPG-style
+ðŸŽ® Complete quests, build habits, clear gates
+ðŸ† Compete on global leaderboards
+🌐 sololevelling-app.vercel.app
