@@ -275,24 +275,30 @@ To use the Discord bot and sync your progress:
 3. Enter your Discord User ID
 4. Use `/link` in <#bot-commands> to verify
 
-**How to find your Discord ID:**
+**How to find your Discord User ID:**
 1. Enable Developer Mode: User Settings → App Settings → Advanced → Developer Mode
 2. Right-click your profile → Copy User ID
 
 ---
 
-## 🤖 Bot Commands
+## 🤖 Slash Commands
 
 Use these commands in <#bot-commands>:
 
 | Command | Description |
 |---------|-------------|
-| `/rank` | View your beautiful rank card |
-| `/stats` | See your detailed statistics |
-| `/leaderboard` | View top 10 hunters |
-| `/quests` | Check your daily quests |
-| `/streak` | View your current streak |
-| `/help` | List all commands |
+| `/xp` | View your rank card with level and XP progress |
+| `/stats` | See your detailed hunter stats (STR, AGI, INT, etc.) |
+| `/leaderboard` | View the server XP leaderboard |
+| `/weekly` | Weekly leaderboard: top XP in last 7 days |
+| `/daily` | Claim your daily XP reward |
+| `/compare` | Compare your stats with another user |
+| `/chooseclass` | Choose your hunter class (level 10+) |
+| `/myclass` | View your current hunter class |
+| `/rewards` | List rewards/role unlocks for ranks |
+| `/voicetop` | View the voice activity leaderboard |
+| `/link` | Check if your Discord is linked to web app |
+| `/help_leveling` | Show all available commands |
 
 ---
 
@@ -328,6 +334,254 @@ Every week, compete for the **Season Champion** role!
 ---
 
 *The System uses me, and I use The System.*
+```
+
+---
+
+## Channel Content Guide
+
+### What to Post in Each Channel
+
+#### 📢 #announcements
+**Who can post:** Admins/Mods only
+
+Post:
+- New app features and updates
+- Patch notes (from CHANGELOG.md)
+- Server events and challenges
+- Weekly Season Champion announcements
+- Maintenance notices
+- Partnership announcements
+
+**Example Post:**
+```
+# ⚡ SYSTEM UPDATE v3.14.0
+
+**New Features:**
+• Discord page added to the app
+• Auto level-up announcements now post here
+• Improved sidebar navigation
+
+**Bug Fixes:**
+• Fixed modal popup issues
+• Fixed XP calculation sync with bot
+
+Check the full changelog: https://sololevelling-app.vercel.app/changelog
+```
+
+---
+
+#### 🔗 #link-account
+**Purpose:** Account linking instructions and verification
+
+**Pinned Message:**
+```
+# 🔗 Link Your Discord Account
+
+To sync your progress and use the bot:
+
+## Method 1: From the App
+1. Go to https://sololevelling-app.vercel.app
+2. Log in or sign up
+3. Click your avatar (top right)
+4. Click "Link Discord"
+5. Enter your Discord User ID
+
+## Method 2: Get Your Discord ID
+1. Go to User Settings → App Settings → Advanced
+2. Enable "Developer Mode"
+3. Right-click your profile picture → "Copy User ID"
+4. Paste it in the app
+
+## Verify Your Link
+Type `/link` here to check if you're connected!
+
+⚠️ **Note:** Your Discord ID is NOT your username. It's a long number like `123456789012345678`
+```
+
+---
+
+#### 💬 #general-chat
+**Purpose:** Main community hub
+
+Encourage:
+- Self-improvement discussions
+- Quest and habit sharing
+- Motivational posts
+- Community bonding
+- Celebrating milestones
+
+Discourage:
+- Bot command spam (use #bot-commands)
+- Bug reports (use #bug-reports)
+- Off-topic spam
+
+---
+
+#### 🤖 #bot-commands
+**Purpose:** All FlaviBot commands
+
+**Pinned Message:**
+```
+# 🤖 Bot Commands
+
+Use slash commands here! Type `/` to see all available commands.
+
+**Popular Commands:**
+• `/xp` - Your rank card
+• `/stats` - Your hunter stats
+• `/leaderboard` - Top hunters
+• `/daily` - Claim daily reward
+• `/weekly` - Weekly leaderboard
+• `/chooseclass` - Pick your class (level 10+)
+• `/compare @user` - Compare with someone
+
+**Tips:**
+• Link your account first: `/link`
+• Commands work only here and in DMs
+• Don't spam - you may get rate limited
+```
+
+---
+
+#### 📈 #level-ups
+**Purpose:** Automatic level-up announcements from the bot
+
+**Bot Auto-Posts:**
+```
+⚡ LEVEL UP!
+
+🎮 [Hunter Name] has reached Level [X]!
+⭐ Rank: [Current Rank]
+📊 Total XP: [XP Amount]
+
+Keep rising, Hunter! 🔥
+```
+
+**Settings:** Read-only for users, FlaviBot can post
+
+---
+
+#### 🏆 #leaderboards
+**Purpose:** Weekly/monthly leaderboard posts
+
+**Weekly Post (Monday):**
+```
+# 🏆 Weekly XP Leaderboard
+
+## Week of January 15-22, 2026
+
+| Rank | Hunter | XP Gained |
+|------|--------|-----------|
+| 🥇 | @Hunter1 | 5,420 XP |
+| 🥈 | @Hunter2 | 4,890 XP |
+| 🥉 | @Hunter3 | 4,210 XP |
+| 4 | @Hunter4 | 3,980 XP |
+| 5 | @Hunter5 | 3,650 XP |
+
+👑 **Season Champion:** @Hunter1
+
+Congratulations to all participants! The grind continues next week.
+```
+
+---
+
+#### 🎯 #achievements
+**Purpose:** Achievement unlock celebrations
+
+**Bot Auto-Posts:**
+```
+🏅 ACHIEVEMENT UNLOCKED!
+
+🎮 [Hunter Name] earned:
+**[Achievement Name]**
+[Achievement Description]
+
+Rarity: ⭐ [Rarity]
+```
+
+---
+
+#### 🏰 #guild-hall
+**Purpose:** Guild recruitment and announcements
+
+**Pinned Template:**
+```
+## 🏰 Guild Recruitment Template
+
+**Guild Name:**
+**Guild Master:**
+**Members:** X/30
+**Access Type:** Public / Private / Invite Only
+
+**About Us:**
+[Description]
+
+**Requirements:**
+- Minimum Rank: [Rank]
+- Weekly XP Minimum: [Amount]
+
+**How to Join:**
+[Instructions]
+```
+
+---
+
+#### 🆘 #help
+**Purpose:** General questions and assistance
+
+Encourage:
+- "How do I..." questions
+- Feature explanations
+- Account help
+- Bot usage help
+
+Discourage:
+- Bug reports → redirect to #bug-reports
+- Feature requests → redirect to #suggestions
+
+---
+
+#### 🐛 #bug-reports
+**Purpose:** Report issues (recommend Forum channel type)
+
+**Post Template:**
+```
+**Bug Description:**
+[What happened]
+
+**Steps to Reproduce:**
+1. [Step 1]
+2. [Step 2]
+
+**Expected Behavior:**
+[What should happen]
+
+**Screenshots:**
+[If applicable]
+
+**Device/Browser:**
+[e.g., Chrome on Windows]
+```
+
+---
+
+#### 💡 #suggestions
+**Purpose:** Feature requests (recommend Forum channel type)
+
+**Post Template:**
+```
+**Suggestion Title:**
+[Brief title]
+
+**Description:**
+[What feature would you like]
+
+**Why It Would Help:**
+[Explain the benefit]
+
+**Priority:**
+🔥 High / ⚡ Medium / 💤 Low
 ```
 
 ---
@@ -373,9 +627,9 @@ Every week, compete for the **Season Champion** role!
 
 ---
 
-*Last updated: January 15, 2026*
+*Last updated: January 16, 2026*
 
-âš"ï¸ Track your self-improvement journey RPG-style
-ðŸŽ® Complete quests, build habits, clear gates
-ðŸ† Compete on global leaderboards
-🌐 sololevelling-app.vercel.app
+⚔️ Track your self-improvement journey RPG-style
+🎮 Complete quests, build habits, clear gates
+🏆 Compete on global leaderboards
+🌐 https://sololevelling-app.vercel.app

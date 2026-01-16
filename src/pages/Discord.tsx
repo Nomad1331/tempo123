@@ -101,23 +101,55 @@ const Discord = () => {
 
       {/* Bot Commands Preview */}
       <Card className="p-6 bg-card border-primary/20 mb-10">
-        <h2 className="text-xl font-bold text-primary mb-4 font-cinzel">Bot Commands</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <h2 className="text-xl font-bold text-primary mb-4 font-cinzel">Slash Commands</h2>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-background/50 p-3 rounded-lg border border-border">
-            <code className="text-primary">!xp</code>
+            <code className="text-primary">/xp</code>
             <p className="text-sm text-muted-foreground mt-1">View your rank card with level and XP progress</p>
           </div>
           <div className="bg-background/50 p-3 rounded-lg border border-border">
-            <code className="text-primary">!stats</code>
+            <code className="text-primary">/stats</code>
             <p className="text-sm text-muted-foreground mt-1">Check your detailed stats (STR, AGI, INT, etc.)</p>
           </div>
           <div className="bg-background/50 p-3 rounded-lg border border-border">
-            <code className="text-primary">!leaderboard</code>
-            <p className="text-sm text-muted-foreground mt-1">View the weekly XP leaderboard</p>
+            <code className="text-primary">/leaderboard</code>
+            <p className="text-sm text-muted-foreground mt-1">View the server XP leaderboard</p>
           </div>
           <div className="bg-background/50 p-3 rounded-lg border border-border">
-            <code className="text-primary">!link</code>
-            <p className="text-sm text-muted-foreground mt-1">Link your Discord account to the web app</p>
+            <code className="text-primary">/weekly</code>
+            <p className="text-sm text-muted-foreground mt-1">Weekly leaderboard: top XP in last 7 days</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/daily</code>
+            <p className="text-sm text-muted-foreground mt-1">Claim your daily XP reward</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/compare</code>
+            <p className="text-sm text-muted-foreground mt-1">Compare your stats with another user</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/chooseclass</code>
+            <p className="text-sm text-muted-foreground mt-1">Choose your hunter class (level 10+)</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/myclass</code>
+            <p className="text-sm text-muted-foreground mt-1">View your current hunter class</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/rewards</code>
+            <p className="text-sm text-muted-foreground mt-1">List rewards/role unlocks for ranks</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/voicetop</code>
+            <p className="text-sm text-muted-foreground mt-1">View the voice activity leaderboard</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/link</code>
+            <p className="text-sm text-muted-foreground mt-1">Check if your Discord is linked to web app</p>
+          </div>
+          <div className="bg-background/50 p-3 rounded-lg border border-border">
+            <code className="text-primary">/help_leveling</code>
+            <p className="text-sm text-muted-foreground mt-1">Show all available leveling commands</p>
           </div>
         </div>
       </Card>
@@ -129,7 +161,7 @@ const Discord = () => {
             <h2 className="text-xl font-bold text-foreground mb-2">Link Your Account</h2>
             <p className="text-muted-foreground">
               To use the Discord bot with your web app data, make sure to link your Discord account. 
-              You can do this from the user menu (click your avatar in the top right) or by using the <code className="text-primary">!link</code> command in Discord.
+              You can do this from the user menu (click your avatar in the top right) or by using the <code className="text-primary">/link</code> command in Discord.
             </p>
           </div>
           <Button 

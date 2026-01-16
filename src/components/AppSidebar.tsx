@@ -113,13 +113,13 @@ export function AppSidebar({ onOpenChangelog }: AppSidebarProps) {
                             onClick={handleNavClick}
                             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 relative ${
                               highlight 
-                                ? "text-[#5865F2] hover:text-[#5865F2] hover:bg-[#5865F2]/10 border border-[#5865F2]/30 hover:border-[#5865F2]/50" 
+                                ? "bg-gradient-to-r from-[#5865F2]/20 to-primary/20 text-white font-semibold border border-[#5865F2]/50 hover:border-[#5865F2] hover:from-[#5865F2]/30 hover:to-primary/30 shadow-[0_0_15px_rgba(88,101,242,0.3)] hover:shadow-[0_0_25px_rgba(88,101,242,0.5)]" 
                                 : "text-muted-foreground hover:text-primary hover:bg-primary/10"
                             }`}
-                            activeClassName={highlight ? "bg-[#5865F2]/20 border-[#5865F2]/50" : "text-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--neon-cyan)/0.3)]"}
+                            activeClassName={highlight ? "from-[#5865F2]/40 to-primary/40 border-[#5865F2] shadow-[0_0_30px_rgba(88,101,242,0.6)]" : "text-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--neon-cyan)/0.3)]"}
                           >
                             <div className="relative">
-                              <Icon className="w-5 h-5" />
+                              <Icon className={`w-5 h-5 ${highlight ? "drop-shadow-[0_0_8px_rgba(88,101,242,0.8)]" : ""}`} />
                               {/* Discord-style notification dot on icon */}
                               <AnimatePresence>
                                 {notifCount > 0 && (
@@ -134,7 +134,7 @@ export function AppSidebar({ onOpenChangelog }: AppSidebarProps) {
                                 )}
                               </AnimatePresence>
                             </div>
-                            <span className={highlight ? "font-medium" : ""}>{label}</span>
+                            <span className={highlight ? "bg-gradient-to-r from-[#5865F2] to-primary bg-clip-text text-transparent font-bold" : ""}>{label}</span>
                             
                             {/* Right-side notification badge for emphasis */}
                             <AnimatePresence>

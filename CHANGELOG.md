@@ -2,6 +2,16 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.1] - 2026-01-16
+
+### Improved
+- **Sidebar Discord & Contact Links**: Now have glowing gradient styling (purple-to-cyan) with drop shadows to stand out prominently
+- **Discord Page Commands**: Updated all commands to use slash command syntax (`/xp` instead of `!xp`) and added all 12 available bot commands
+- **DISCORD.md Channel Content Guide**: Added comprehensive "What to Post in Each Channel" section with example posts, templates, and pinned message content for each channel type
+
+### Updated
+- DISCORD.md now includes detailed content templates for: #announcements, #link-account, #general-chat, #bot-commands, #level-ups, #leaderboards, #achievements, #guild-hall, #help, #bug-reports, and #suggestions
+
 ## [3.14.0] - 2026-01-16
 
 ### Added
