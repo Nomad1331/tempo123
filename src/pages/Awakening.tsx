@@ -20,6 +20,7 @@ import { onLevelUp } from "@/hooks/usePlayerStats";
 import { useCloudStreaks } from "@/hooks/useCloudStreaks";
 
 const TUTORIAL_SEEN_KEY = "solo-leveling-tutorial-seen";
+const DISCORD_SEEN_KEY = "solo-leveling-discord-invite-seen";
 
 const Awakening = () => {
   const { stats, allocateStat, getTotalPower, getXPForNextLevel, getCurrentLevelXP } = usePlayerStats();
@@ -52,10 +53,18 @@ const Awakening = () => {
     // For logged in users, check if tutorial has been seen
     if (!authLoading && user) {
       const tutorialSeen = localStorage.getItem(TUTORIAL_SEEN_KEY);
+      const discordSeen = localStorage.getItem(DISCORD_SEEN_KEY);
+      
       if (!tutorialSeen) {
         // Show tutorial for new users (or users who haven't seen it)
         const timer = setTimeout(() => {
           setShowTutorial(true);
+        }, 1000);
+        return () => clearTimeout(timer);
+      } else if (!discordSeen) {
+        // Tutorial seen but not discord invite - show discord invite once
+        const timer = setTimeout(() => {
+          setShowDiscordInvite(true);
         }, 1000);
         return () => clearTimeout(timer);
       }
@@ -70,8 +79,12 @@ const Awakening = () => {
   const handleTutorialComplete = () => {
     setShowTutorial(false);
     localStorage.setItem(TUTORIAL_SEEN_KEY, "true");
-    // Show Discord invite after tutorial completes
-    setTimeout(() => setShowDiscordInvite(true), 500);
+    // Check if Discord invite has been seen
+    const discordSeen = localStorage.getItem(DISCORD_SEEN_KEY);
+    if (!discordSeen) {
+      // Show Discord invite after tutorial completes
+      setTimeout(() => setShowDiscordInvite(true), 500);
+    }
   };
 
   const statsList = [
@@ -175,7 +188,7 @@ const Awakening = () => {
       
       {/* Show Discord invite after tutorial or for returning users who haven't seen it */}
       <DiscordInviteModal 
-        forceShow={showDiscordInvite} 
+        open={showDiscordInvite} 
         onClose={() => setShowDiscordInvite(false)} 
       />
 

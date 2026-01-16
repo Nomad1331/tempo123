@@ -8,7 +8,9 @@ const corsHeaders = {
 
 // Bot secret for authentication (set this in Supabase Edge Function secrets)
 const BOT_SECRET = Deno.env.get('BOT_SYNC_SECRET');
-const DISCORD_WEBHOOK_URL = Deno.env.get('DISCORD_WEBHOOK_URL'); // For auto-posting
+
+// Level-up webhook URL for Discord announcements
+const LEVELUP_WEBHOOK_URL = "https://discord.com/api/webhooks/1461519301218533582/8nHUHGXbf2nRePFUZ9Nuf7E1-ZrtRzgZTz4TFHeIgBG24gdsW35WdXoemfv0uLeINxB-";
 
 // Discord channel ID for level-up announcements
 const LEVEL_UP_CHANNEL_ID = "1461077959413731491";
@@ -868,29 +870,101 @@ serve(async (req) => {
       }
 
       case 'post_level_up': {
-        // Post level-up to Discord channel via webhook (bot will handle actual posting)
-        result = {
-          success: true,
-          channel_id: LEVEL_UP_CHANNEL_ID,
-          hunter_name: profile.hunter_name,
-          old_level: data?.old_level || playerStats.level - 1,
-          new_level: data?.new_level || playerStats.level,
-          old_rank: data?.old_rank,
-          new_rank: data?.new_rank || playerStats.rank,
-          message: `🎉 **${profile.hunter_name}** leveled up to **Level ${data?.new_level || playerStats.level}**!`
-        };
+        // Post level-up to Discord channel via webhook
+        const newLevel = data?.new_level || playerStats.level;
+        const newRank = data?.new_rank || playerStats.rank;
+        
+        try {
+          const embed = {
+            title: "⚔️ LEVEL UP!",
+            description: `**${profile.hunter_name}** has reached **Level ${newLevel}**!`,
+            color: 0x00d4ff,
+            fields: [
+              { name: "🏆 Rank", value: newRank, inline: true },
+              { name: "📈 New Level", value: String(newLevel), inline: true }
+            ],
+            footer: { text: "Solo Leveling System • The System acknowledges your growth" },
+            timestamp: new Date().toISOString()
+          };
+          
+          const webhookPayload = {
+            content: discord_id ? `<@${discord_id}>` : "",
+            embeds: [embed],
+            username: "The System",
+            avatar_url: "https://i.imgur.com/7cL5Xr8.png"
+          };
+          
+          const webhookResponse = await fetch(LEVELUP_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload)
+          });
+          
+          console.log(`Posted level-up for ${profile.hunter_name} (Level ${newLevel}). Status: ${webhookResponse.status}`);
+          
+          result = {
+            success: true,
+            channel_id: LEVEL_UP_CHANNEL_ID,
+            hunter_name: profile.hunter_name,
+            new_level: newLevel,
+            new_rank: newRank,
+            webhook_status: webhookResponse.status
+          };
+        } catch (webhookError) {
+          console.error('Error posting to webhook:', webhookError);
+          result = {
+            success: false,
+            error: 'Failed to post to Discord webhook'
+          };
+        }
         break;
       }
 
       case 'post_achievement': {
-        result = {
-          success: true,
-          channel_id: LEVEL_UP_CHANNEL_ID,
-          hunter_name: profile.hunter_name,
-          achievement_name: data?.achievement_name,
-          achievement_description: data?.achievement_description,
-          message: `🏆 **${profile.hunter_name}** unlocked achievement: **${data?.achievement_name}**!`
-        };
+        // Post achievement to Discord channel via webhook
+        const achievementName = data?.achievement_name || 'Unknown Achievement';
+        const achievementDesc = data?.achievement_description || '';
+        
+        try {
+          const embed = {
+            title: "🏅 ACHIEVEMENT UNLOCKED!",
+            description: `**${profile.hunter_name}** unlocked **${achievementName}**!`,
+            color: 0xffd700,
+            fields: [
+              { name: "📜 Description", value: achievementDesc || "A new milestone reached!", inline: false }
+            ],
+            footer: { text: "Solo Leveling System • A new achievement has been recorded" },
+            timestamp: new Date().toISOString()
+          };
+          
+          const webhookPayload = {
+            embeds: [embed],
+            username: "The System",
+            avatar_url: "https://i.imgur.com/7cL5Xr8.png"
+          };
+          
+          const webhookResponse = await fetch(LEVELUP_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload)
+          });
+          
+          console.log(`Posted achievement for ${profile.hunter_name} (${achievementName}). Status: ${webhookResponse.status}`);
+          
+          result = {
+            success: true,
+            channel_id: LEVEL_UP_CHANNEL_ID,
+            hunter_name: profile.hunter_name,
+            achievement_name: achievementName,
+            webhook_status: webhookResponse.status
+          };
+        } catch (webhookError) {
+          console.error('Error posting achievement to webhook:', webhookError);
+          result = {
+            success: false,
+            error: 'Failed to post achievement to Discord webhook'
+          };
+        }
         break;
       }
 

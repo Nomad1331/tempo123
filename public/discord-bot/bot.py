@@ -14,10 +14,16 @@ import config as bot_config
 import math
 from database import Database
 from rank_card import create_rank_card
+import aiohttp
+
 _formula_cache = {}
 # Guild settings cache to avoid database spam
 _guild_settings_cache = {}
 _CACHE_TTL = 600  # 5 minutes
+
+# Webhook for level-up announcements
+LEVELUP_WEBHOOK_URL = "https://discord.com/api/webhooks/1461519301218533582/8nHUHGXbf2nRePFUZ9Nuf7E1-ZrtRzgZTz4TFHeIgBG24gdsW35WdXoemfv0uLeINxB-"
+LEVELUP_CHANNEL_ID = 1461077959413731491
 
 def get_cached_guild_settings(guild_id):
     """Get guild settings with caching to prevent database spam"""
@@ -3998,6 +4004,95 @@ async def _send_text_card(interaction: discord.Interaction, result: dict):
     embed.set_footer(text="\"I am a Hunter chosen by The System\"")
     
     await interaction.followup.send(embed=embed)
+
+# -------------------------
+# LEVEL-UP WEBHOOK POSTING
+# -------------------------
+async def post_level_up_to_discord(hunter_name: str, new_level: int, rank: str, discord_id: str = None):
+    """Post a level-up announcement to Discord via webhook"""
+    try:
+        # Create embed for the level-up announcement
+        embed = {
+            "title": "⚔️ LEVEL UP!",
+            "description": f"**{hunter_name}** has reached **Level {new_level}**!",
+            "color": 0x00d4ff,  # Cyan color
+            "fields": [
+                {
+                    "name": "🏆 Rank",
+                    "value": rank,
+                    "inline": True
+                },
+                {
+                    "name": "📈 New Level",
+                    "value": str(new_level),
+                    "inline": True
+                }
+            ],
+            "footer": {
+                "text": "Solo Leveling System • The System acknowledges your growth"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Add mention if discord_id is provided
+        content = ""
+        if discord_id:
+            content = f"<@{discord_id}>"
+        
+        payload = {
+            "content": content,
+            "embeds": [embed],
+            "username": "The System",
+            "avatar_url": "https://i.imgur.com/7cL5Xr8.png"  # System avatar
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(LEVELUP_WEBHOOK_URL, json=payload) as response:
+                if response.status == 204 or response.status == 200:
+                    print(f"✅ Posted level-up for {hunter_name} (Level {new_level}) to Discord")
+                else:
+                    print(f"❌ Failed to post level-up: {response.status}")
+                    
+    except Exception as e:
+        print(f"❌ Error posting level-up to Discord: {e}")
+
+
+async def post_achievement_to_discord(hunter_name: str, achievement_name: str, achievement_desc: str, discord_id: str = None):
+    """Post an achievement unlock to Discord via webhook"""
+    try:
+        embed = {
+            "title": "🏅 ACHIEVEMENT UNLOCKED!",
+            "description": f"**{hunter_name}** unlocked **{achievement_name}**!",
+            "color": 0xffd700,  # Gold color
+            "fields": [
+                {
+                    "name": "📜 Description",
+                    "value": achievement_desc,
+                    "inline": False
+                }
+            ],
+            "footer": {
+                "text": "Solo Leveling System • A new achievement has been recorded"
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        payload = {
+            "embeds": [embed],
+            "username": "The System",
+            "avatar_url": "https://i.imgur.com/7cL5Xr8.png"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(LEVELUP_WEBHOOK_URL, json=payload) as response:
+                if response.status == 204 or response.status == 200:
+                    print(f"✅ Posted achievement for {hunter_name} ({achievement_name}) to Discord")
+                else:
+                    print(f"❌ Failed to post achievement: {response.status}")
+                    
+    except Exception as e:
+        print(f"❌ Error posting achievement to Discord: {e}")
+
 
 # -------------------------
 # RUN BOT

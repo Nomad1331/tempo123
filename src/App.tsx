@@ -25,6 +25,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Guilds from "./pages/Guilds";
 import Friends from "./pages/Friends";
 import Auth from "./pages/Auth";
+import Discord from "./pages/Discord";
 import NotFound from "./pages/NotFound";
 import { useAchievements } from "./hooks/useAchievements";
 import { AchievementUnlockQueue } from "./components/AchievementUnlockPopup";
@@ -80,6 +81,7 @@ const AppContent = () => {
         <Route path="/customize" element={<Customize />} />
         <Route path="/supporters" element={<Supporters />} />
         <Route path="/faq" element={<FAQ />} />
+        <Route path="/discord" element={<Discord />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

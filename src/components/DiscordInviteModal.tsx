@@ -2,44 +2,19 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Users, Trophy, MessageCircle, Zap } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const DISCORD_INVITE_URL = "https://discord.gg/8geBVTC4";
 const DISCORD_SEEN_KEY = "solo-leveling-discord-invite-seen";
 
 interface DiscordInviteModalProps {
-  forceShow?: boolean;
-  onClose?: () => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export const DiscordInviteModal = ({ forceShow, onClose }: DiscordInviteModalProps) => {
-  const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (forceShow) {
-      setOpen(true);
-      return;
-    }
-
-    // Only show for authenticated users
-    if (!user) return;
-
-    // Check if already seen
-    const seen = localStorage.getItem(DISCORD_SEEN_KEY);
-    if (!seen) {
-      // Delay slightly to not conflict with tutorial
-      const timer = setTimeout(() => {
-        setOpen(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [user, forceShow]);
-
+export const DiscordInviteModal = ({ open, onClose }: DiscordInviteModalProps) => {
   const handleClose = () => {
-    setOpen(false);
     localStorage.setItem(DISCORD_SEEN_KEY, "true");
-    onClose?.();
+    onClose();
   };
 
   const handleJoin = () => {
@@ -49,7 +24,7 @@ export const DiscordInviteModal = ({ forceShow, onClose }: DiscordInviteModalPro
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="sm:max-w-[480px] bg-card border-[#5865F2]/30 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] bg-card border-[#5865F2]/30 p-0 overflow-hidden" hideCloseButton>
         {/* Close button */}
         <button
           onClick={handleClose}

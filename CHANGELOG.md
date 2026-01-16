@@ -2,18 +2,27 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.0] - 2026-01-16
+
+### Added
+- **Discord Server Page**: New `/discord` page with server info, bot commands, and join button. Accessible from sidebar with contrasting purple styling
+- **Discord Level-Up Auto-Posting**: Level-ups from the web app now automatically post to Discord via webhook (channel ID: 1461077959413731491)
+- **Sidebar Highlight for Discord & Contact**: Discord and Contact links now have contrasting purple styling to stand out
+
+### Fixed
+- **Double Close Button on Modals**: Fixed overlapping close buttons on Tutorial and Discord invite modals by using `hideCloseButton` prop
+- **Discord Invite Popup Appearing Repeatedly**: Fixed the popup logic - now properly checks localStorage and only shows ONCE for users who haven't seen it
+- **Tutorial/Discord Invite Persistence**: Both modals now correctly persist their "seen" state and don't reappear on every app open
+
 ## [3.13.9] - 2026-01-15
 
 ### Fixed - CRITICAL
-- **Bot XP Calculation Mismatch**: Fixed XP formula in Discord bot to match web app. Was using `sum(l * 100 for l in range(1, level + 1))` but should be `100 * (level - 1) * level // 2`. Your rank card now shows correct XP progress!
+- **Bot XP Calculation Mismatch**: Fixed XP formula in Discord bot to match web app
 
 ### Added
-- **Discord Server Invite Popup**: New users see a Discord invite popup after completing the tutorial. Existing users see it once on their next visit. Join link: https://discord.gg/8geBVTC4
-- **Tutorial Auto-Open for New Signups**: Tutorial modal now properly opens for authenticated users who haven't seen it yet
-- **Discord Auto-Post API**: Added `post_level_up` and `post_achievement` actions to bot-sync edge function for auto-posting to Discord channel
-
-### Fixed
-- **Tutorial Not Showing**: Fixed tutorial not auto-opening for new cloud users after signup
+- **Discord Server Invite Popup**: New users see Discord invite after tutorial
+- **Tutorial Auto-Open for New Signups**: Tutorial modal properly opens for new authenticated users
+- **Discord Auto-Post API**: Added `post_level_up` and `post_achievement` actions to bot-sync edge function
 
 ## [3.13.8] - 2026-01-15
 

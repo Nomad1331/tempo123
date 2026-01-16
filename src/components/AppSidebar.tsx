@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Swords, Target, Trophy, Zap, Crown, Palette, Gift, Sparkles, HelpCircle, Mail, BarChart3, Award, Medal, Castle, Users } from "lucide-react";
+import { Swords, Target, Trophy, Zap, Crown, Palette, Gift, Sparkles, HelpCircle, Mail, BarChart3, Award, Medal, Castle, Users, MessageCircle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,8 @@ const navItems = [
   { to: "/customize", label: "Customize", icon: Palette },
   { to: "/supporters", label: "Hall of Fame", icon: Crown },
   { to: "/faq", label: "FAQ", icon: HelpCircle },
-  { to: "/contact", label: "Contact", icon: Mail },
+  { to: "/discord", label: "Discord", icon: MessageCircle, highlight: true },
+  { to: "/contact", label: "Contact", icon: Mail, highlight: true },
 ];
 
 interface AppSidebarProps {
@@ -103,15 +104,19 @@ export function AppSidebar({ onOpenChangelog }: AppSidebarProps) {
 
                     {/* Navigation Links */}
                     <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                      {navItems.map(({ to, label, icon: Icon, notifKey }) => {
+                      {navItems.map(({ to, label, icon: Icon, notifKey, highlight }) => {
                         const notifCount = getNotifCount(notifKey);
                         return (
                           <NavLink
                             key={to}
                             to={to}
                             onClick={handleNavClick}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground transition-all duration-300 hover:text-primary hover:bg-primary/10 relative"
-                            activeClassName="text-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--neon-cyan)/0.3)]"
+                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 relative ${
+                              highlight 
+                                ? "text-[#5865F2] hover:text-[#5865F2] hover:bg-[#5865F2]/10 border border-[#5865F2]/30 hover:border-[#5865F2]/50" 
+                                : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            }`}
+                            activeClassName={highlight ? "bg-[#5865F2]/20 border-[#5865F2]/50" : "text-primary bg-primary/20 shadow-[0_0_20px_hsl(var(--neon-cyan)/0.3)]"}
                           >
                             <div className="relative">
                               <Icon className="w-5 h-5" />
@@ -129,7 +134,7 @@ export function AppSidebar({ onOpenChangelog }: AppSidebarProps) {
                                 )}
                               </AnimatePresence>
                             </div>
-                            <span>{label}</span>
+                            <span className={highlight ? "font-medium" : ""}>{label}</span>
                             
                             {/* Right-side notification badge for emphasis */}
                             <AnimatePresence>

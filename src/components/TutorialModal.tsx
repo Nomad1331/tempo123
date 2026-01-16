@@ -246,7 +246,7 @@ export const TutorialModal = ({ open, onComplete }: TutorialModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-[550px] bg-card border-primary/30 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[550px] bg-card border-primary/30 p-0 overflow-hidden" hideCloseButton>
         {/* Skip Button */}
         <button
           onClick={handleSkip}
