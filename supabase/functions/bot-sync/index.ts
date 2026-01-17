@@ -870,8 +870,8 @@ serve(async (req) => {
       }
 
       case 'post_level_up': {
-        // Post level-up to Discord channel via webhook
-        // This is called from the web app when a user levels up
+        // Queue level-up for the bot to process with custom images
+        // The bot polls the pending_level_ups table and handles announcements
         const oldLevel = data?.old_level || playerStats.level - 1;
         const newLevel = data?.new_level || playerStats.level;
         const oldRank = data?.old_rank || 'E-Rank';
@@ -879,40 +879,23 @@ serve(async (req) => {
         const isRankUp = oldRank !== newRank;
         
         try {
-          // Different message format for rank-up vs regular level-up
-          // Rank-up uses a more elaborate message matching bot.py handle_levelup
-          let webhookPayload;
-          
-          if (isRankUp) {
-            // Rank Up - More elaborate announcement matching bot style
-            const rankColors: Record<string, number> = {
-              'E-Rank': 0x808080,
-              'D-Rank': 0x00ff00,
-              'C-Rank': 0x0099ff,
-              'B-Rank': 0x9900ff,
-              'A-Rank': 0xff6600,
-              'S-Rank': 0xff0000
-            };
-            
-            webhookPayload = {
-              content: discord_id ? `<@${discord_id}>` : "",
-              embeds: [{
-                title: "🔮 SYSTEM ALERT",
-                description: `**${profile.hunter_name}** has ascended.\n\n**${oldRank} → ${newRank}**`,
-                color: rankColors[newRank] || 0x00d4ff,
-                fields: [
-                  { name: "📈 New Level", value: String(newLevel), inline: true },
-                  { name: "🏆 New Rank", value: newRank, inline: true }
-                ],
-                thumbnail: { url: profile.avatar || "https://i.imgur.com/7cL5Xr8.png" },
-                footer: { text: "Solo Leveling System • The gates await stronger hunters" },
-                timestamp: new Date().toISOString()
-              }],
-              username: "The System",
-              avatar_url: "https://i.imgur.com/7cL5Xr8.png"
-            };
-          } else {
-            // Regular level up - simpler text message matching bot style
+          // Insert into pending_level_ups table for bot to process
+          const { error: insertError } = await supabase
+            .from('pending_level_ups')
+            .insert({
+              discord_id: discord_id,
+              hunter_name: profile.hunter_name,
+              old_level: oldLevel,
+              new_level: newLevel,
+              old_rank: oldRank,
+              new_rank: newRank,
+              is_rank_up: isRankUp,
+              processed: false
+            });
+
+          if (insertError) {
+            console.error('Error inserting pending level-up:', insertError);
+            // Fall back to simple webhook message if queue fails
             const rankFlavor: Record<string, string> = {
               "E-Rank": "Still grinding!",
               "D-Rank": "Building strength!",
@@ -923,38 +906,36 @@ serve(async (req) => {
             };
             
             const flavorText = rankFlavor[newRank] || "Keep going!";
-            
-            webhookPayload = {
+            const webhookPayload = {
               content: `⚡ **LEVEL UP**\n<@${discord_id}> reached **Level ${newLevel}**! ${flavorText}`,
               username: "The System",
               avatar_url: "https://i.imgur.com/7cL5Xr8.png"
             };
+            
+            await fetch(LEVELUP_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(webhookPayload)
+            });
           }
           
-          const webhookResponse = await fetch(LEVELUP_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(webhookPayload)
-          });
-          
-          console.log(`Posted ${isRankUp ? 'rank-up' : 'level-up'} for ${profile.hunter_name} (Level ${newLevel}, Rank ${newRank}). Status: ${webhookResponse.status}`);
+          console.log(`Queued ${isRankUp ? 'rank-up' : 'level-up'} for ${profile.hunter_name} (Level ${newLevel}, Rank ${newRank})`);
           
           result = {
             success: true,
-            channel_id: LEVEL_UP_CHANNEL_ID,
+            queued: true,
             hunter_name: profile.hunter_name,
             old_level: oldLevel,
             new_level: newLevel,
             old_rank: oldRank,
             new_rank: newRank,
-            is_rank_up: isRankUp,
-            webhook_status: webhookResponse.status
+            is_rank_up: isRankUp
           };
-        } catch (webhookError) {
-          console.error('Error posting to webhook:', webhookError);
+        } catch (queueError) {
+          console.error('Error queuing level-up:', queueError);
           result = {
             success: false,
-            error: 'Failed to post to Discord webhook'
+            error: 'Failed to queue level-up notification'
           };
         }
         break;

@@ -311,6 +311,48 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_level_ups: {
+        Row: {
+          created_at: string
+          discord_id: string
+          hunter_name: string
+          id: string
+          is_rank_up: boolean
+          new_level: number
+          new_rank: string
+          old_level: number
+          old_rank: string
+          processed: boolean
+          processed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          discord_id: string
+          hunter_name: string
+          id?: string
+          is_rank_up?: boolean
+          new_level: number
+          new_rank: string
+          old_level: number
+          old_rank: string
+          processed?: boolean
+          processed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          discord_id?: string
+          hunter_name?: string
+          id?: string
+          is_rank_up?: boolean
+          new_level?: number
+          new_rank?: string
+          old_level?: number
+          old_rank?: string
+          processed?: boolean
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       player_stats: {
         Row: {
           agility: number

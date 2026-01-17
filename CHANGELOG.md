@@ -2,6 +2,17 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.4] - 2026-01-17
+
+### Improved
+- **App-based level-up/rank-up Discord notifications**: Now uses the bot's custom rank images (e_to_d.png, d_to_c.png, etc.) for rank-ups instead of simple embeds
+- **Rank-up announcements**: App-based rank-ups now show the same beautiful custom images with username overlay as Discord-based rank-ups
+- **Level-up messages**: Regular level-ups from the app now send the same text format as Discord-based level-ups
+
+### Changed
+- **Level-up processing architecture**: Web app now queues level-ups to Supabase `pending_level_ups` table, and the bot polls & processes them with full image generation support
+- **Bot task added**: New `process_app_level_ups` task runs every 10 seconds to check for and process pending app-based level-ups
+
 ## [3.14.3] - 2026-01-17
 
 ### Improved

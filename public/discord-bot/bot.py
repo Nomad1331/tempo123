@@ -473,6 +473,14 @@ async def on_ready():
     except Exception as e:
         print(f"Warning: could not start check_season_end: {e}")
 
+    # Start the app level-up processor task
+    try:
+        if not process_app_level_ups.is_running():
+            process_app_level_ups.start()
+            print("✅ App level-up processor started")
+    except Exception as e:
+        print(f"Warning: could not start process_app_level_ups: {e}")
+
     # Sync global slash commands in background (global registration may take time)
     async def _sync():
         await bot.wait_until_ready()
@@ -913,6 +921,155 @@ async def voice_xp_task():
                     
                     # account for 5 minutes of voice time
                     db.add_voice_time(member.id, guild.id, 5 * 60)
+
+# -------------------------
+# APP LEVEL-UP PROCESSOR
+# -------------------------
+@tasks.loop(seconds=10)
+async def process_app_level_ups():
+    """Poll Supabase for pending level-ups from the web app and process them with custom images"""
+    if not supabase:
+        return
+    
+    try:
+        # Fetch unprocessed level-ups
+        response = supabase.table('pending_level_ups').select('*').eq('processed', False).order('created_at').limit(10).execute()
+        
+        if not response.data:
+            return
+        
+        for pending in response.data:
+            try:
+                discord_id = pending['discord_id']
+                hunter_name = pending['hunter_name']
+                old_level = pending['old_level']
+                new_level = pending['new_level']
+                old_rank = pending['old_rank'].upper().replace('-RANK', '-RANK').replace(' ', '-')
+                new_rank = pending['new_rank'].upper().replace('-RANK', '-RANK').replace(' ', '-')
+                is_rank_up = pending['is_rank_up']
+                
+                # Normalize rank format to match RANK_IMAGES keys (e.g., "E-RANK")
+                old_rank_normalized = old_rank.upper().replace('RANK', 'RANK')
+                new_rank_normalized = new_rank.upper().replace('RANK', 'RANK')
+                if 'RANK' not in old_rank_normalized:
+                    old_rank_normalized = old_rank_normalized + '-RANK' if '-' not in old_rank_normalized else old_rank_normalized
+                if 'RANK' not in new_rank_normalized:
+                    new_rank_normalized = new_rank_normalized + '-RANK' if '-' not in new_rank_normalized else new_rank_normalized
+                
+                # Use the main server's level-up channel
+                guild = bot.get_guild(int(MAIN_SERVER_ID))
+                if not guild:
+                    # Try test server
+                    guild = bot.get_guild(int(TEST_SERVER_ID))
+                
+                if not guild:
+                    print(f"process_app_level_ups: No guild found for level-up notification")
+                    continue
+                
+                # Get level-up channel
+                levelup_channel = guild.get_channel(LEVELUP_CHANNEL_ID)
+                if not levelup_channel:
+                    levelup_channel = guild.system_channel or guild.text_channels[0]
+                
+                # Try to get member for role updates
+                member = None
+                try:
+                    member = await guild.fetch_member(int(discord_id))
+                except:
+                    print(f"process_app_level_ups: Could not find member {discord_id}")
+                
+                if is_rank_up:
+                    # Generate custom rank image
+                    img = generate_rank_image(hunter_name, old_rank_normalized, new_rank_normalized)
+                    
+                    if img and os.path.exists(img) and os.path.getsize(img) > 0:
+                        try:
+                            # Update roles if member found
+                            if member:
+                                await update_rank_roles(member, new_rank_normalized)
+                                mention = member.mention
+                            else:
+                                mention = f"**{hunter_name}**"
+                            
+                            # Send with custom image
+                            await levelup_channel.send(
+                                f"🔮 **SYSTEM ALERT**\n"
+                                f"{mention} has ascended.\n\n"
+                                f"**{old_rank_normalized} → {new_rank_normalized}**\n"
+                                f"Role unlocked: <@&{get_rank_roles(guild.id)[new_rank_normalized]}>",
+                                file=discord.File(img)
+                            )
+                            
+                            try:
+                                os.remove(img)
+                            except:
+                                pass
+                                
+                        except Exception as e:
+                            print(f"process_app_level_ups: Error sending rank image: {e}")
+                            # Fallback to text-only
+                            try:
+                                await levelup_channel.send(
+                                    f"🔮 **SYSTEM ALERT**\n"
+                                    f"**{hunter_name}** has ascended.\n\n"
+                                    f"**{old_rank_normalized} → {new_rank_normalized}**"
+                                )
+                            except:
+                                pass
+                    else:
+                        # No image available, send text fallback
+                        try:
+                            mention = member.mention if member else f"**{hunter_name}**"
+                            await levelup_channel.send(
+                                f"🔮 **SYSTEM ALERT**\n"
+                                f"{mention} has ascended.\n\n"
+                                f"**{old_rank_normalized} → {new_rank_normalized}**"
+                            )
+                        except Exception as e:
+                            print(f"process_app_level_ups: Error sending fallback: {e}")
+                else:
+                    # Regular level up - just text
+                    rank_flavor = {
+                        "E-RANK": "Still grinding!",
+                        "D-RANK": "Building strength!",
+                        "C-RANK": "Getting stronger!",
+                        "B-RANK": "Rising through the ranks!",
+                        "A-RANK": "Elite hunter status!",
+                        "S-RANK": "Legendary power!"
+                    }
+                    
+                    flavor_text = rank_flavor.get(new_rank_normalized, "Keep going!")
+                    mention = member.mention if member else f"**{hunter_name}**"
+                    
+                    try:
+                        await levelup_channel.send(
+                            f"⚡ **LEVEL UP**\n"
+                            f"{mention} reached **Level {new_level}**! {flavor_text}"
+                        )
+                    except Exception as e:
+                        print(f"process_app_level_ups: Error sending level up: {e}")
+                
+                # Mark as processed
+                supabase.table('pending_level_ups').update({
+                    'processed': True,
+                    'processed_at': datetime.now().isoformat()
+                }).eq('id', pending['id']).execute()
+                
+                print(f"process_app_level_ups: Processed {'rank-up' if is_rank_up else 'level-up'} for {hunter_name}")
+                
+            except Exception as e:
+                print(f"process_app_level_ups: Error processing pending level-up: {e}")
+                # Mark as processed to avoid infinite retries
+                try:
+                    supabase.table('pending_level_ups').update({
+                        'processed': True,
+                        'processed_at': datetime.now().isoformat()
+                    }).eq('id', pending['id']).execute()
+                except:
+                    pass
+                    
+    except Exception as e:
+        print(f"process_app_level_ups: Error polling for level-ups: {e}")
 
 @tasks.loop(hours=1)
 async def check_season_end():
