@@ -227,7 +227,7 @@ export const UserMenu = () => {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                To find your Discord ID: Enable Developer Mode in Discord settings, then right-click your profile and select "Copy User ID"
+                To find your Discord ID: Enable Developer Mode in Discord settings, then right-click your profile and select "Copy User ID". Alternatively, you can also use the /link command in the 🔗ㆍlink-account channel and get your User ID at the bottom.
               </p>
             </div>
           </div>
