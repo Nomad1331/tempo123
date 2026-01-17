@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HunterAvatar } from '@/components/HunterAvatar';
 import { NotificationCenter } from '@/components/NotificationCenter';
-import { User, LogOut, Globe, Lock, KeyRound, Link2, Check, Loader2 } from 'lucide-react';
+import { User, LogOut, Globe, Lock, KeyRound, Link2, Check, Loader2, Palette, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { supabase } from '@/integrations/supabase/client';
@@ -151,6 +151,20 @@ export const UserMenu = () => {
               onCheckedChange={(checked) => setProfilePublic(checked)}
             />
           </div>
+
+          <DropdownMenuSeparator />
+
+          {/* Customize Profile */}
+          <DropdownMenuItem onClick={() => { navigate('/customize'); setIsOpen(false); }}>
+            <Palette className="h-4 w-4 mr-2" />
+            Customize Profile
+          </DropdownMenuItem>
+
+          {/* Discord Server */}
+          <DropdownMenuItem onClick={() => { navigate('/discord'); setIsOpen(false); }}>
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Discord Server
+          </DropdownMenuItem>
 
           <DropdownMenuSeparator />
 

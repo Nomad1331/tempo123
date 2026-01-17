@@ -1492,21 +1492,25 @@ async def chooseclass_slash(interaction: discord.Interaction):
     if not await defer_interaction(interaction):
         return
     
-    # SPECIAL HANDLING: chooseclass needs reactions, so we DON'T use the wrapper
-    # Instead, call the function directly with proper context
+    # Get level from WEB APP (single source of truth) instead of local DB
+    web_result = await db.get_web_stats(str(interaction.user.id))
     
-    # Ensure user exists FIRST
-    user_data = db.get_user(interaction.user.id, interaction.guild.id)
-    if not user_data:
-        db.create_user(interaction.user.id, interaction.guild.id)
-        await asyncio.sleep(0.1)
-        user_data = db.get_user(interaction.user.id, interaction.guild.id)
-    
-    if not user_data:
-        await interaction.followup.send("❌ Error creating user. Please try again.")
+    if not web_result.get('success'):
+        error = web_result.get('error', 'Unknown error')
+        if 'not linked' in str(error).lower():
+            await interaction.followup.send(
+                "❌ **Account Not Linked**\n"
+                "Your Discord is not linked to the web app.\n"
+                "👉 Log in at **sololeveling.app** with Discord to link your accounts!"
+            )
+        else:
+            await interaction.followup.send(f"❌ Error: {error}")
         return
     
-    current_level = level_from_xp(user_data['xp'], interaction.guild.id)
+    # Get level from web app stats
+    stats = web_result.get('data', {}).get('stats', {})
+    current_level = stats.get('level', 1)
+    unlocked_classes = stats.get('unlocked_classes', [])
     
     # Check if user is high enough level
     if current_level < CLASS_UNLOCK_LEVEL:
@@ -1516,7 +1520,18 @@ async def chooseclass_slash(interaction: discord.Interaction):
         )
         return
     
-    # Check if user already has a class
+    # Check if user already has a class (from web app)
+    if unlocked_classes and len(unlocked_classes) > 0:
+        # User has already chosen a class via web app
+        chosen = unlocked_classes[0].upper() if unlocked_classes else None
+        if chosen:
+            await interaction.followup.send(
+                f"❌ You've already chosen **{chosen}**!\n"
+                f"Classes are permanent and cannot be changed."
+            )
+            return
+    
+    # Also check local DB for Discord-only class selection
     current_class = db.get_user_class(interaction.user.id, interaction.guild.id)
     if current_class:
         await interaction.followup.send(
@@ -3052,25 +3067,41 @@ async def help_config(ctx):
 @bot.command()
 async def chooseclass(ctx):
     """Choose your hunter class (unlocks at level 10)"""
-    # Ensure user exists FIRST
-    user_data = db.get_user(ctx.author.id, ctx.guild.id)
-    if not user_data:
-        db.create_user(ctx.author.id, ctx.guild.id)
-        await asyncio.sleep(0.1)  # Wait for DB write to complete
+    # Try to get level from WEB APP first (single source of truth)
+    web_result = await db.get_web_stats(str(ctx.author.id))
+    
+    if web_result.get('success'):
+        # Use web app stats
+        stats = web_result.get('data', {}).get('stats', {})
+        current_level = stats.get('level', 1)
+        unlocked_classes = stats.get('unlocked_classes', [])
+        
+        # Check if user already has a class via web app
+        if unlocked_classes and len(unlocked_classes) > 0:
+            chosen = unlocked_classes[0].upper() if unlocked_classes else None
+            if chosen:
+                await ctx.send(f"❌ You've already chosen **{chosen}**!\nClasses are permanent and cannot be changed.")
+                return
+    else:
+        # Fallback to local database
         user_data = db.get_user(ctx.author.id, ctx.guild.id)
-    
-    if not user_data:
-        await ctx.send("❌ Error creating user. Please try again.")
-        return
-    
-    current_level = level_from_xp(user_data['xp'], ctx.guild.id)
+        if not user_data:
+            db.create_user(ctx.author.id, ctx.guild.id)
+            await asyncio.sleep(0.1)
+            user_data = db.get_user(ctx.author.id, ctx.guild.id)
+        
+        if not user_data:
+            await ctx.send("❌ Error creating user. Please try again.")
+            return
+        
+        current_level = level_from_xp(user_data['xp'], ctx.guild.id)
     
     # Check if user is high enough level
     if current_level < CLASS_UNLOCK_LEVEL:
         await ctx.send(f"❌ You need to reach **Level {CLASS_UNLOCK_LEVEL}** to choose a class!\nYour current level: **{current_level}**")
         return
     
-    # Check if user already has a class
+    # Check if user already has a class in local DB
     current_class = db.get_user_class(ctx.author.id, ctx.guild.id)
     if current_class:
         await ctx.send(f"❌ You've already chosen **{current_class}**!\nClasses are permanent and cannot be changed.")

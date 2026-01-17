@@ -2,17 +2,21 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.2] - 2026-01-17
+
+### Security
+- **Discord ID Protection**: Profiles table now requires authentication to view, preventing exposure of Discord IDs to unauthenticated users
+
+### Added
+- **Customize & Discord shortcuts** in profile dropdown menu for quick access
+- **App-based level-up Discord notifications**: When users level up through the web app, a notification is posted to the Discord level-up channel
+- **Class level requirement in app**: Classes now require Level 10 to unlock with visual feedback
+
+### Fixed
+- **Bot /chooseclass command**: Now reads level from web app (Supabase) instead of local SQLite database, ensuring correct level is used
+- **Class selection in app**: Now properly enforces Level 10 requirement with informative message
+
 ## [3.14.1] - 2026-01-16
-
-### Improved
-- **Sidebar Discord & Contact Links**: Now have glowing gradient styling (purple-to-cyan) with drop shadows to stand out prominently
-- **Discord Page Commands**: Updated all commands to use slash command syntax (`/xp` instead of `!xp`) and added all 12 available bot commands
-- **DISCORD.md Channel Content Guide**: Added comprehensive "What to Post in Each Channel" section with example posts, templates, and pinned message content for each channel type
-
-### Updated
-- DISCORD.md now includes detailed content templates for: #announcements, #link-account, #general-chat, #bot-commands, #level-ups, #leaderboards, #achievements, #guild-hall, #help, #bug-reports, and #suggestions
-
-## [3.14.0] - 2026-01-16
 
 ### Added
 - **Discord Server Page**: New `/discord` page with server info, bot commands, and join button. Accessible from sidebar with contrasting purple styling
