@@ -254,7 +254,13 @@ export const usePlayerStats = () => {
   };
 
   // Post level-up to Discord via edge function
-  const postLevelUpToDiscord = useCallback(async (discordId: string, newLevel: number, newRank: string) => {
+  const postLevelUpToDiscord = useCallback(async (
+    discordId: string, 
+    oldLevel: number,
+    newLevel: number, 
+    oldRank: string,
+    newRank: string
+  ) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const botSecret = "solo-leveling-bot-sync-2024";
@@ -270,12 +276,14 @@ export const usePlayerStats = () => {
           discord_id: discordId,
           action: 'post_level_up',
           data: {
+            old_level: oldLevel,
             new_level: newLevel,
+            old_rank: oldRank,
             new_rank: newRank,
           }
         })
       });
-      console.log(`Posted level-up to Discord for level ${newLevel}`);
+      console.log(`Posted level-up to Discord for level ${newLevel} (${oldRank !== newRank ? 'RANK UP!' : 'level up'})`);
     } catch (error) {
       console.error('Failed to post level-up to Discord:', error);
     }
@@ -315,11 +323,12 @@ export const usePlayerStats = () => {
         
         // Post level-up to Discord in background (if user has Discord linked)
         const newRank = getRank(newLevel);
+        const oldRankValue = prev.rank;
         (async () => {
           try {
             const { data } = await supabase.from('profiles').select('discord_id').eq('user_id', user?.id || '').maybeSingle();
             if (data?.discord_id) {
-              await postLevelUpToDiscord(data.discord_id, newLevel, newRank);
+              await postLevelUpToDiscord(data.discord_id, oldLevel, newLevel, oldRankValue, newRank);
             }
           } catch (e) {
             console.error('Failed to post level-up to Discord:', e);

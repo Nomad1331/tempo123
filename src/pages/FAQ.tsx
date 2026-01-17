@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { HelpCircle, Zap, Target, Trophy, Swords, Gift, Palette, Crown, RefreshCw, Flame } from "lucide-react";
+import { HelpCircle, Zap, Target, Trophy, Swords, Gift, Palette, Crown, RefreshCw, Flame, BookOpen } from "lucide-react";
+import { TutorialModal } from "@/components/TutorialModal";
 
 const faqData = [
   {
@@ -249,8 +252,16 @@ const renderAnswer = (answer: string) => {
 };
 
 const FAQ = () => {
+  const [showTutorial, setShowTutorial] = useState(false);
+
   return (
     <div className="container mx-auto px-4 py-8 pt-24">
+      {/* Tutorial Modal */}
+      <TutorialModal 
+        open={showTutorial} 
+        onComplete={() => setShowTutorial(false)} 
+      />
+
       {/* Header */}
       <div className="text-center mb-8">
         <div className="flex items-center justify-center gap-3 mb-2">
@@ -259,7 +270,17 @@ const FAQ = () => {
             FAQ
           </h1>
         </div>
-        <p className="text-muted-foreground">Everything you need to know about the System</p>
+        <p className="text-muted-foreground mb-4">Everything you need to know about the System</p>
+        
+        {/* Tutorial Button */}
+        <Button
+          onClick={() => setShowTutorial(true)}
+          variant="outline"
+          className="gap-2 border-primary/50 hover:bg-primary/10 hover:border-primary"
+        >
+          <BookOpen className="w-4 h-4" />
+          View Tutorial Again
+        </Button>
       </div>
 
       {/* FAQ Categories */}

@@ -2,6 +2,15 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.3] - 2026-01-17
+
+### Improved
+- **Discord level-up notifications**: Now sends rank-aware messages - rank-ups get elaborate "SYSTEM ALERT" announcements, regular level-ups get simpler messages matching bot style
+- **Level-up payload**: Now includes old level/rank for proper rank-up detection
+
+### Added
+- **"View Tutorial Again" button on FAQ page**: Users can re-open the tutorial modal anytime from the FAQ page
+
 ## [3.14.2] - 2026-01-17
 
 ### Security

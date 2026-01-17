@@ -871,28 +871,65 @@ serve(async (req) => {
 
       case 'post_level_up': {
         // Post level-up to Discord channel via webhook
+        // This is called from the web app when a user levels up
+        const oldLevel = data?.old_level || playerStats.level - 1;
         const newLevel = data?.new_level || playerStats.level;
+        const oldRank = data?.old_rank || 'E-Rank';
         const newRank = data?.new_rank || playerStats.rank;
+        const isRankUp = oldRank !== newRank;
         
         try {
-          const embed = {
-            title: "⚔️ LEVEL UP!",
-            description: `**${profile.hunter_name}** has reached **Level ${newLevel}**!`,
-            color: 0x00d4ff,
-            fields: [
-              { name: "🏆 Rank", value: newRank, inline: true },
-              { name: "📈 New Level", value: String(newLevel), inline: true }
-            ],
-            footer: { text: "Solo Leveling System • The System acknowledges your growth" },
-            timestamp: new Date().toISOString()
-          };
+          // Different message format for rank-up vs regular level-up
+          // Rank-up uses a more elaborate message matching bot.py handle_levelup
+          let webhookPayload;
           
-          const webhookPayload = {
-            content: discord_id ? `<@${discord_id}>` : "",
-            embeds: [embed],
-            username: "The System",
-            avatar_url: "https://i.imgur.com/7cL5Xr8.png"
-          };
+          if (isRankUp) {
+            // Rank Up - More elaborate announcement matching bot style
+            const rankColors: Record<string, number> = {
+              'E-Rank': 0x808080,
+              'D-Rank': 0x00ff00,
+              'C-Rank': 0x0099ff,
+              'B-Rank': 0x9900ff,
+              'A-Rank': 0xff6600,
+              'S-Rank': 0xff0000
+            };
+            
+            webhookPayload = {
+              content: discord_id ? `<@${discord_id}>` : "",
+              embeds: [{
+                title: "🔮 SYSTEM ALERT",
+                description: `**${profile.hunter_name}** has ascended.\n\n**${oldRank} → ${newRank}**`,
+                color: rankColors[newRank] || 0x00d4ff,
+                fields: [
+                  { name: "📈 New Level", value: String(newLevel), inline: true },
+                  { name: "🏆 New Rank", value: newRank, inline: true }
+                ],
+                thumbnail: { url: profile.avatar || "https://i.imgur.com/7cL5Xr8.png" },
+                footer: { text: "Solo Leveling System • The gates await stronger hunters" },
+                timestamp: new Date().toISOString()
+              }],
+              username: "The System",
+              avatar_url: "https://i.imgur.com/7cL5Xr8.png"
+            };
+          } else {
+            // Regular level up - simpler text message matching bot style
+            const rankFlavor: Record<string, string> = {
+              "E-Rank": "Still grinding!",
+              "D-Rank": "Building strength!",
+              "C-Rank": "Getting stronger!",
+              "B-Rank": "Rising through the ranks!",
+              "A-Rank": "Elite hunter status!",
+              "S-Rank": "Legendary power!"
+            };
+            
+            const flavorText = rankFlavor[newRank] || "Keep going!";
+            
+            webhookPayload = {
+              content: `⚡ **LEVEL UP**\n<@${discord_id}> reached **Level ${newLevel}**! ${flavorText}`,
+              username: "The System",
+              avatar_url: "https://i.imgur.com/7cL5Xr8.png"
+            };
+          }
           
           const webhookResponse = await fetch(LEVELUP_WEBHOOK_URL, {
             method: 'POST',
@@ -900,14 +937,17 @@ serve(async (req) => {
             body: JSON.stringify(webhookPayload)
           });
           
-          console.log(`Posted level-up for ${profile.hunter_name} (Level ${newLevel}). Status: ${webhookResponse.status}`);
+          console.log(`Posted ${isRankUp ? 'rank-up' : 'level-up'} for ${profile.hunter_name} (Level ${newLevel}, Rank ${newRank}). Status: ${webhookResponse.status}`);
           
           result = {
             success: true,
             channel_id: LEVEL_UP_CHANNEL_ID,
             hunter_name: profile.hunter_name,
+            old_level: oldLevel,
             new_level: newLevel,
+            old_rank: oldRank,
             new_rank: newRank,
+            is_rank_up: isRankUp,
             webhook_status: webhookResponse.status
           };
         } catch (webhookError) {
