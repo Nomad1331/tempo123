@@ -5,6 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { emitRankUp } from "@/components/RankUpAnimation";
 
+// Bot sync URL for Discord notifications
+const BOT_SYNC_URL = "https://gdkpmyznxfthobxpyryx.supabase.co/functions/v1/bot-sync";
+
 // Event emitter for level up animations
 type LevelUpListener = (level: number, pointsEarned: number) => void;
 const levelUpListeners: LevelUpListener[] = [];
@@ -250,6 +253,34 @@ export const usePlayerStats = () => {
     return "E-Rank";
   };
 
+  // Post level-up to Discord via edge function
+  const postLevelUpToDiscord = useCallback(async (discordId: string, newLevel: number, newRank: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const botSecret = "solo-leveling-bot-sync-2024";
+      
+      await fetch(BOT_SYNC_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'X-Bot-Secret': botSecret,
+        },
+        body: JSON.stringify({
+          discord_id: discordId,
+          action: 'post_level_up',
+          data: {
+            new_level: newLevel,
+            new_rank: newRank,
+          }
+        })
+      });
+      console.log(`Posted level-up to Discord for level ${newLevel}`);
+    } catch (error) {
+      console.error('Failed to post level-up to Discord:', error);
+    }
+  }, []);
+
   const addXP = useCallback(async (amount: number, source?: { type: "quest" | "habit" | "gate" | "streak" | "other"; description: string }) => {
     const boostMultiplier = amount > 0 ? getActiveBoostMultiplier() : 1;
     const boostedAmount = Math.round(amount * boostMultiplier);
@@ -281,6 +312,19 @@ export const usePlayerStats = () => {
           description: `You are now Level ${newLevel}! +${levelsGained * 5} Ability Points`,
           duration: 5000,
         });
+        
+        // Post level-up to Discord in background (if user has Discord linked)
+        const newRank = getRank(newLevel);
+        (async () => {
+          try {
+            const { data } = await supabase.from('profiles').select('discord_id').eq('user_id', user?.id || '').maybeSingle();
+            if (data?.discord_id) {
+              await postLevelUpToDiscord(data.discord_id, newLevel, newRank);
+            }
+          } catch (e) {
+            console.error('Failed to post level-up to Discord:', e);
+          }
+        })();
       }
 
       const newRank = getRank(newLevel);
@@ -305,7 +349,7 @@ export const usePlayerStats = () => {
 
       return newStats;
     });
-  }, [getActiveBoostMultiplier, saveStats]);
+  }, [getActiveBoostMultiplier, saveStats, postLevelUpToDiscord, user]);
 
   const addGold = useCallback(async (amount: number) => {
     setStats((prev) => {

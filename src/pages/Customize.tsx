@@ -14,13 +14,16 @@ import { StatsCardFrame } from "@/components/StatsCardFrame";
 import { TutorialModal } from "@/components/TutorialModal";
 import { getSupporterBenefits } from "@/lib/supporters";
 
+// Minimum level required to choose a class
+const CLASS_UNLOCK_LEVEL = 10;
+
 const AVATAR_OPTIONS = [
-  { id: "fighter", emoji: "⚔️", name: "Fighter", description: "Master of combat" },
-  { id: "tanker", emoji: "🛡️", name: "Tanker", description: "Unbreakable defender" },
-  { id: "mage", emoji: "🔮", name: "Mage", description: "Wielder of magic" },
-  { id: "assassin", emoji: "🗡️", name: "Assassin", description: "Silent hunter" },
-  { id: "ranger", emoji: "🏹", name: "Ranger", description: "Precise marksman" },
-  { id: "healer", emoji: "💚", name: "Healer", description: "Guardian of life" },
+  { id: "fighter", emoji: "⚔️", name: "Fighter", description: "Master of combat", requiresLevel: CLASS_UNLOCK_LEVEL },
+  { id: "tanker", emoji: "🛡️", name: "Tanker", description: "Unbreakable defender", requiresLevel: CLASS_UNLOCK_LEVEL },
+  { id: "mage", emoji: "🔮", name: "Mage", description: "Wielder of magic", requiresLevel: CLASS_UNLOCK_LEVEL },
+  { id: "assassin", emoji: "🗡️", name: "Assassin", description: "Silent hunter", requiresLevel: CLASS_UNLOCK_LEVEL },
+  { id: "ranger", emoji: "🏹", name: "Ranger", description: "Precise marksman", requiresLevel: CLASS_UNLOCK_LEVEL },
+  { id: "healer", emoji: "💚", name: "Healer", description: "Guardian of life", requiresLevel: CLASS_UNLOCK_LEVEL },
   { id: "necromancer", emoji: "💀", name: "Necromancer", description: "Commander of death", locked: true },
 ];
 
@@ -207,9 +210,21 @@ const Customize = () => {
 
           {/* Emoji Avatars */}
           <Label className="text-sm font-semibold text-foreground mb-3 block">Or Choose a Class</Label>
+          {stats.level < CLASS_UNLOCK_LEVEL && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <p className="text-sm text-amber-400">
+                🔒 Class selection unlocks at <strong>Level {CLASS_UNLOCK_LEVEL}</strong>. 
+                You are currently Level {stats.level}.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-3">
             {AVATAR_OPTIONS.map((avatar) => {
-              const isLocked = avatar.locked && !stats.unlockedClasses?.includes(avatar.id);
+              // Check if class is locked due to level requirement or special requirements
+              const levelLocked = avatar.requiresLevel ? stats.level < avatar.requiresLevel : false;
+              const specialLocked = avatar.locked && !stats.unlockedClasses?.includes(avatar.id);
+              const isLocked = levelLocked || specialLocked;
+              
               return (
                 <button
                   key={avatar.id}
@@ -240,7 +255,7 @@ const Customize = () => {
                   </div>
                   {isLocked && (
                     <p className="absolute bottom-1 left-0 right-0 text-[10px] text-muted-foreground text-center">
-                      90-day streak
+                      {specialLocked ? "90-day streak" : `Level ${avatar.requiresLevel}`}
                     </p>
                   )}
                 </button>
