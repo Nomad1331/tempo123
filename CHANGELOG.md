@@ -198,7 +198,7 @@ All notable changes to the Solo Leveling System will be documented in this file.
   - Challenge claims tracked server-side
 
 - **Discord `/card` Command**: Now shows stats summary with link to web app
-  - Directs users to **sololeveling.app** for full card with custom frames
+  - Directs users to **https://sololevelling-app.vercel.app/** for full card with custom frames
   - Shows level, rank, power, stats, and currency in Discord
   - Use `/xp` for Discord-based rank card image
 
@@ -270,7 +270,7 @@ All notable changes to the Solo Leveling System will be documented in this file.
 - **Unified /stats Command**: `/stats` now shows only web app stats as the single source of truth
   - Removed duplicate Discord vs Web App stats display
   - Web app is the primary data source for all player statistics
-  - Unlinked users prompted to link at sololeveling.app
+  - Unlinked users prompted to link at https://sololevelling-app.vercel.app/
   - Removed `/webstats` command (merged into `/stats`)
 
 ### Fixed
