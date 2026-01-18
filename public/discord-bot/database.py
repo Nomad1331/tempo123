@@ -208,14 +208,15 @@ class Database:
     # WEB APP SYNC METHODS (NEW)
     # =====================================
     
-    async def sync_xp_to_web(self, discord_id: str, xp_amount: int, source: str = "discord"):
+    async def sync_xp_to_web(self, discord_id: str, xp_amount: int, source: str = "discord", is_admin: bool = False):
         """
         Sync XP earned in Discord to the web app via the bot-sync Edge Function.
         
         Args:
             discord_id: The user's Discord ID
-            xp_amount: Amount of XP to add (max 1000 per call, enforced by edge function)
+            xp_amount: Amount of XP to add
             source: Source of XP (e.g., "discord_message", "discord_voice", "discord_daily")
+            is_admin: If True, bypasses the 1000 XP cap (for admin commands)
         
         Returns:
             dict with success status and data, or error message
@@ -236,8 +237,9 @@ class Database:
                         "discord_id": str(discord_id),
                         "action": "add_xp",
                         "data": {
-                            "xp": min(xp_amount, 1000),  # Cap at 1000 per call
-                            "source": source
+                            "xp": xp_amount,
+                            "source": source,
+                            "is_admin": is_admin
                         }
                     },
                     headers={
@@ -261,6 +263,61 @@ class Database:
             return {"success": False, "error": "Timeout"}
         except Exception as e:
             print(f"❌ Web sync error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    async def set_xp_on_web(self, discord_id: str, xp_amount: int, source: str = "discord_admin"):
+        """
+        Set total XP to exact value on the web app (admin command).
+        
+        Args:
+            discord_id: The user's Discord ID
+            xp_amount: Total XP to set
+            source: Source of XP change
+        
+        Returns:
+            dict with success status and data, or error message
+        """
+        import config as bot_config
+        
+        # Check if sync is configured
+        if not bot_config.BOT_SYNC_SECRET or not bot_config.SUPABASE_SERVICE_ROLE_KEY:
+            return {"success": False, "error": "Web sync not configured"}
+        
+        url = f"{bot_config.SUPABASE_URL}/functions/v1/bot-sync"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    json={
+                        "discord_id": str(discord_id),
+                        "action": "set_xp",
+                        "data": {
+                            "xp": xp_amount,
+                            "source": source
+                        }
+                    },
+                    headers={
+                        "Authorization": f"Bearer {bot_config.SUPABASE_SERVICE_ROLE_KEY}",
+                        "X-Bot-Secret": bot_config.BOT_SYNC_SECRET,
+                        "Content-Type": "application/json"
+                    },
+                    timeout=aiohttp.ClientTimeout(total=10)
+                ) as response:
+                    result = await response.json()
+                    
+                    if response.status == 200:
+                        print(f"✅ Set XP to {xp_amount} on web for Discord ID {discord_id}")
+                        return {"success": True, "data": result}
+                    else:
+                        print(f"❌ Web set XP failed: {result}")
+                        return {"success": False, "error": result.get("error", "Unknown error")}
+                        
+        except asyncio.TimeoutError:
+            print(f"⚠️ Web set XP timeout for {discord_id}")
+            return {"success": False, "error": "Timeout"}
+        except Exception as e:
+            print(f"❌ Web set XP error: {e}")
             return {"success": False, "error": str(e)}
     
     async def get_web_stats(self, discord_id: str):

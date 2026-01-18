@@ -2738,6 +2738,9 @@ async def setxp(ctx, member: discord.Member, amount: str):
 
     # Update roles immediately
     await update_rank_roles(member, new_rank)
+    
+    # Sync to web app (set_xp action sets the total XP)
+    asyncio.create_task(db.set_xp_on_web(str(member.id), amount, "discord_admin"))
 
     await ctx.send(
         f"🔮 **SYSTEM OVERRIDE**\n"
@@ -2768,8 +2771,8 @@ async def addxp(ctx, member: discord.Member, amount: int):
 
     db.add_xp(member.id, ctx.guild.id, amount)
     
-    # Sync admin-added XP to web app
-    asyncio.create_task(db.sync_xp_to_web(str(member.id), amount, "discord_admin"))
+    # Sync admin-added XP to web app (with is_admin=True to bypass cap)
+    asyncio.create_task(db.sync_xp_to_web(str(member.id), amount, "discord_admin", is_admin=True))
 
     new_data = db.get_user(member.id, ctx.guild.id)
     new_level = level_from_xp(new_data['xp'], ctx.guild.id)
