@@ -18,7 +18,8 @@ const LEVEL_UP_CHANNEL_ID = "1461077959413731491";
 interface BotSyncRequest {
   discord_id: string;
   action: 
-    | 'add_xp' 
+    | 'add_xp'
+    | 'set_xp'  // NEW: Set XP to exact value (admin command)
     | 'sync_stats' 
     | 'get_stats' 
     | 'link_class' 
@@ -42,6 +43,7 @@ interface BotSyncRequest {
     quest_index?: number;
     habit_id?: string;
     habit_index?: number;
+    is_admin?: boolean;  // NEW: Flag for admin commands (bypasses caps)
     stats?: {
       strength?: number;
       agility?: number;
@@ -179,6 +181,7 @@ serve(async (req) => {
       case 'add_xp': {
         const xpAmount = data?.xp || 0;
         const source = data?.source || 'discord_bot';
+        const isAdmin = data?.is_admin === true;
 
         if (xpAmount <= 0) {
           return new Response(
@@ -187,8 +190,8 @@ serve(async (req) => {
           );
         }
 
-        // Rate limit: max 1000 XP per call
-        const cappedXP = Math.min(xpAmount, 1000);
+        // Rate limit: max 1000 XP per call (unless admin command)
+        const cappedXP = isAdmin ? xpAmount : Math.min(xpAmount, 1000);
 
         // Calculate new level
         const newTotalXP = playerStats.total_xp + cappedXP;
@@ -246,6 +249,74 @@ serve(async (req) => {
           ability_points_gained: abilityPointsGained,
           total_xp: newTotalXP,
           weekly_xp: newWeeklyXP,
+        };
+        break;
+      }
+
+      case 'set_xp': {
+        // Admin command to SET total XP to an exact value
+        const xpAmount = data?.xp;
+        const source = data?.source || 'discord_admin';
+
+        if (xpAmount === undefined || xpAmount < 0) {
+          return new Response(
+            JSON.stringify({ error: 'XP amount must be non-negative' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const newTotalXP = xpAmount;
+        
+        // Calculate level from total XP
+        // Level calculation: Total XP for level L = 100 * (L-1) * L / 2
+        let newLevel = 1;
+        while (100 * newLevel * (newLevel + 1) / 2 <= newTotalXP) {
+          newLevel += 1;
+        }
+
+        // Determine rank
+        let newRank = 'E-Rank';
+        if (newLevel >= 100) newRank = 'S-Rank';
+        else if (newLevel >= 75) newRank = 'A-Rank';
+        else if (newLevel >= 50) newRank = 'B-Rank';
+        else if (newLevel >= 25) newRank = 'C-Rank';
+        else if (newLevel >= 6) newRank = 'D-Rank';
+
+        const levelsGained = Math.max(0, newLevel - playerStats.level);
+        const abilityPointsGained = levelsGained * 5;
+
+        // Update stats - set total_xp directly, weekly_xp stays same
+        const { error: updateError } = await supabase
+          .from('player_stats')
+          .update({
+            total_xp: newTotalXP,
+            level: newLevel,
+            rank: newRank,
+            available_points: playerStats.available_points + abilityPointsGained,
+          })
+          .eq('user_id', profile.user_id);
+
+        if (updateError) {
+          console.error('Error setting XP:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to set XP' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`Set XP to ${newTotalXP} for ${profile.hunter_name} (${discord_id}). Level: ${playerStats.level} -> ${newLevel}`);
+
+        result = {
+          success: true,
+          xp_set: newTotalXP,
+          source,
+          old_level: playerStats.level,
+          new_level: newLevel,
+          old_rank: playerStats.rank,
+          new_rank: newRank,
+          levels_gained: levelsGained,
+          ability_points_gained: abilityPointsGained,
+          total_xp: newTotalXP,
         };
         break;
       }

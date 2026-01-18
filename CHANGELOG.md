@@ -2,6 +2,17 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.6] - 2026-01-18
+
+### Fixed
+- **Discord /setxp command not syncing to web app**: Added `set_xp` action to edge function and `set_xp_on_web()` method to sync total XP changes from admin commands
+- **Discord /addxp command limited to 1000 XP**: Admin commands now bypass the 1000 XP cap by passing `is_admin=true` flag
+- **Web app XP not updating from Discord commands**: Both `/setxp` and `/addxp` now properly sync to the web app database
+
+### Changed
+- **Edge function `add_xp` action**: Now accepts `is_admin` flag to bypass rate limits for admin commands
+- **New `set_xp` action**: Sets total XP to an exact value (used by /setxp command)
+
 ## [3.14.5] - 2026-01-18
 
 ### Fixed
