@@ -2,6 +2,12 @@
 
 All notable changes to the Solo Leveling System will be documented in this file.
 
+## [3.14.5] - 2026-01-18
+
+### Fixed
+- **Discord /link command not detecting linked accounts**: Added RLS policy to allow bot to query profiles by discord_id for account linking verification
+- **Bot access to profiles table**: Fixed RLS policy that was blocking the bot's anon key from checking linked accounts
+
 ## [3.14.4] - 2026-01-17
 
 ### Improved
